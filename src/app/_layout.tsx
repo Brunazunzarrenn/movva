@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 
+import { SportsProvider } from '@/data/SportsStore';
 import { fontAssets } from '@/theme/fonts';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
@@ -17,6 +18,7 @@ function RootStack() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="configuracoes" />
         <Stack.Screen name="em-breve" />
+        <Stack.Screen name="admin/esportes" />
         <Stack.Screen name="treino" options={{ presentation: 'fullScreenModal' }} />
       </Stack>
     </View>
@@ -28,7 +30,9 @@ export default function RootLayout() {
   if (!loaded) return <View style={{ flex: 1, backgroundColor: '#0B0F0C' }} />;
   return (
     <ThemeProvider>
-      <RootStack />
+      <SportsProvider>
+        <RootStack />
+      </SportsProvider>
     </ThemeProvider>
   );
 }

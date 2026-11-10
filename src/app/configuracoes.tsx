@@ -4,6 +4,9 @@ import { Pressable, Switch, View } from 'react-native';
 
 import { Txt } from '@/components/Txt';
 import { Header, Screen, Segmented, s } from '@/components/ui';
+import { useSports } from '@/data/SportsStore';
+import { me } from '@/data/mock';
+import { fonts } from '@/theme/fonts';
 import { useTheme, type ThemePreference } from '@/theme/ThemeProvider';
 
 const THEME_LABEL = { Escuro: 'escuro', Claro: 'claro', Auto: 'auto' } as const;
@@ -19,6 +22,8 @@ const PRIVACY = [
 
 export default function Configuracoes() {
   const { colors, preference, setPreference } = useTheme();
+  const { suggestions } = useSports();
+  const pending = suggestions.filter((x) => x.status === 'pendente').length;
   const [sw, setSw] = useState<Record<string, boolean>>({ priv: false, zone: true, invites: true, terr: true });
 
   const Row = ({ label, danger, onPress }: { label: string; danger?: boolean; onPress?: () => void }) => (
@@ -70,6 +75,27 @@ export default function Configuracoes() {
           ))}
         </View>
       </View>
+
+      {me.isAdmin ? (
+        <View style={{ gap: 8 }}>
+          <Txt variant="eyebrow" tone="muted">Administração</Txt>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/admin/esportes')}
+            style={[s.row, { gap: 12, padding: 16, borderRadius: 16, backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accentSoftBorder }]}
+          >
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt variant="bodyStrong" tone="accent">Esportes sugeridos</Txt>
+              <Txt variant="caption" tone="soft">Aprovar, juntar ou recusar esportes enviados pelos usuários</Txt>
+            </View>
+            {pending > 0 ? (
+              <View style={{ minWidth: 28, height: 28, paddingHorizontal: 8, borderRadius: 14, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
+                <Txt style={{ fontFamily: fonts.bodyBold, fontSize: 13, color: colors.onAccent }}>{pending}</Txt>
+              </View>
+            ) : null}
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={{ gap: 8 }}>
         <Txt variant="eyebrow" tone="muted">Conta e dados</Txt>

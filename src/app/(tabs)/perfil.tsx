@@ -32,7 +32,7 @@ export default function Perfil() {
           </View>
           <Txt variant="small" tone="muted" style={{ fontSize: 14 }}>{me.bio}</Txt>
         </View>
-        <View style={[s.row, { gap: 8 }]}>
+        <View style={s.wrap}>
           {me.sports.map((sp) => <Chip key={sp} label={sp} />)}
         </View>
         <View style={[s.row, { paddingVertical: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.divider }]}>

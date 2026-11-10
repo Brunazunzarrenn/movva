@@ -2,11 +2,6 @@
 // Quando o banco entrar, as telas passam a ler daqui para as funções de API,
 // mantendo os mesmos formatos.
 
-export const sportsList = [
-  'Corrida', 'Ciclismo', 'Natação', 'Triathlon', 'Futebol', 'Vôlei', 'Basquete', 'Academia',
-  'Funcional', 'Crossfit', 'Caminhada', 'Tênis', 'Beach tennis', 'Lutas', 'Yoga', 'Trilha',
-] as const;
-
 export const levels = ['Iniciante', 'Intermediário', 'Avançado', 'Profissional'] as const;
 
 export const me = {
@@ -14,8 +9,11 @@ export const me = {
   initials: 'RC',
   color: '#2E5BFF',
   bio: 'Atleta · Belo Horizonte · Triathlon amador',
-  sports: ['Corrida', 'Ciclismo', 'Natação'],
+  sports: ['Corrida de rua', 'Ciclismo de estrada', 'Natação'],
   pro: true,
+  // Papel de administrador: libera o painel de esportes sugeridos.
+  // No backend isso vira uma coluna `role` protegida por regras de acesso.
+  isAdmin: true,
   followers: 1248,
   following: 312,
   workouts: 186,
