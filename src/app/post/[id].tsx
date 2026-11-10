@@ -6,9 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/Icon';
 import { PostPhoto } from '@/components/profileParts';
 import { Txt } from '@/components/Txt';
-import { Avatar, IconButton, s } from '@/components/ui';
+import { Avatar, IconButton, RouteMap, VerifiedBadge, s } from '@/components/ui';
 import { colorOf, initialsOf, useProfile } from '@/data/ProfileStore';
-import { myPosts, workouts, type Comment } from '@/data/profile';
+import { agoLabel, athleteById, communityPosts, minutesSince } from '@/data/community';
+import { useCommunity } from '@/data/CommunityStore';
+import { myPosts, workouts } from '@/data/profile';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -18,38 +20,91 @@ export default function PostDetalhe() {
   const { width } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { profile, posts } = useProfile();
+  const { likes, comments: stored, toggleLike, addComment } = useCommunity();
 
-  // Post do próprio usuário (publicado no app) ou dos dados de exemplo.
+  type PostView = {
+    photos: { uri?: string; art?: number }[];
+    text: string;
+    when: string;
+    workoutId?: string;
+    likes: number;
+    author: { id?: string; name: string; initials: string; color: string; uri?: string; verified?: boolean };
+    sport?: string;
+    route?: string;
+    stats?: { label: string; value: string }[];
+    seed: { id: string; authorId: string; name?: string; initials?: string; color?: string; time: string; text: string }[];
+  };
+
+  const meAuthor = {
+    name: profile?.name ?? 'Você',
+    initials: initialsOf(profile?.name ?? 'Você'),
+    color: colorOf(profile?.username ?? 'voce'),
+    uri: profile?.photoUri,
+  };
+
+  // O post pode ser seu, de um atleta da comunidade de teste ou dos dados de exemplo.
   const own = posts.find((p) => p.id === id);
+  const community = communityPosts.find((p) => p.id === id);
   const sample = myPosts.find((p) => p.id === id);
-  const post = own
+  const cAuthor = community ? athleteById(community.athleteId) : undefined;
+  const post: PostView | null = own
     ? {
-        photos: own.photoUris.map((uri) => ({ uri, art: undefined as number | undefined })),
+        photos: own.photoUris.map((uri) => ({ uri })),
         text: own.text,
         when: new Date(own.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
         workoutId: own.workoutId,
         likes: 0,
-        comments: [] as Comment[],
+        author: meAuthor,
+        seed: [],
       }
-    : sample
-      ? { photos: sample.photos.map((art) => ({ uri: undefined, art })), text: sample.text, when: sample.when, workoutId: sample.workoutId, likes: sample.likes, comments: sample.comments }
-      : null;
+    : community && cAuthor
+      ? {
+          photos: community.photo !== undefined ? [{ art: community.photo }] : [],
+          text: community.text,
+          when: agoLabel(community.hoursAgo * 60),
+          likes: community.likes,
+          author: { id: cAuthor.id, name: cAuthor.name, initials: initialsOf(cAuthor.name), color: cAuthor.color, verified: cAuthor.verified },
+          sport: community.sport,
+          route: community.route,
+          stats: community.stats,
+          seed: community.comments.map((c) => ({ id: c.id, authorId: c.authorId, time: agoLabel(c.minutesAgo), text: c.text })),
+        }
+      : sample
+        ? {
+            photos: sample.photos.map((art) => ({ art })),
+            text: sample.text,
+            when: sample.when,
+            workoutId: sample.workoutId,
+            likes: sample.likes,
+            author: meAuthor,
+            seed: sample.comments.map((c) => ({ id: c.id, authorId: '', name: c.author, initials: c.initials, color: c.color, time: c.time, text: c.text })),
+          }
+        : null;
   const workout = workouts.find((w) => w.id === post?.workoutId);
 
-  const [liked, setLiked] = useState(false);
   const [photo, setPhoto] = useState(0);
-  const [comments, setComments] = useState<Comment[]>(post?.comments ?? []);
   const [draft, setDraft] = useState('');
+  const liked = !!likes[id];
 
-  const authorName = profile?.name ?? 'Você';
-  const authorInitials = initialsOf(authorName);
-  const authorColor = colorOf(profile?.username ?? authorName);
+  // Junta os comentários de exemplo com os que foram feitos no app (seus e respostas).
+  type RawComment = PostView['seed'][number];
+  const comments = ([
+    ...(post?.seed ?? []),
+    ...(stored[id] ?? []).map((c) => ({ id: c.id, authorId: c.authorId, time: agoLabel(minutesSince(c.at)), text: c.text })),
+  ] as RawComment[]).map((c) => {
+    if (c.authorId === 'me') return { ...c, name: meAuthor.name, initials: meAuthor.initials, color: meAuthor.color, uri: meAuthor.uri };
+    const a = c.authorId ? athleteById(c.authorId) : undefined;
+    return a ? { ...c, name: a.name, initials: initialsOf(a.name), color: a.color, uri: undefined } : { ...c, name: c.name ?? '', initials: c.initials ?? '?', color: c.color ?? '#888', uri: undefined };
+  });
 
   const send = () => {
     const text = draft.trim();
     if (!text) return;
-    setComments((cur) => [...cur, { id: 'n' + Date.now(), author: authorName, initials: authorInitials, color: authorColor, time: 'agora', text }]);
+    addComment(id, text);
     setDraft('');
+  };
+  const openAuthor = (aid?: string) => {
+    if (aid && aid !== 'me' && athleteById(aid)) router.push({ pathname: '/atleta/[id]', params: { id: aid } });
   };
 
   if (!post) {
@@ -65,11 +120,14 @@ export default function PostDetalhe() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[s.row, { gap: 10, paddingTop: insets.top + 8, paddingHorizontal: 12, paddingBottom: 8 }]}>
         <IconButton icon="back" label="Voltar" onPress={() => router.back()} />
-        <Avatar initials={authorInitials} color={authorColor} size={38} uri={profile?.photoUri} />
-        <View style={{ gap: 2 }}>
-          <Txt variant="bodyStrong">{authorName}</Txt>
-          <Txt variant="caption" tone="muted">{workout ? `${workout.sport} · ` : ''}{post.when}</Txt>
-        </View>
+        <Pressable accessibilityRole="button" onPress={() => openAuthor(post.author.id)} style={[s.row, { gap: 10, flex: 1 }]}>
+          <Avatar initials={post.author.initials} color={post.author.color} size={38} uri={post.author.uri} />
+          <View style={{ gap: 2, flex: 1 }}>
+            <Txt variant="bodyStrong">{post.author.name}</Txt>
+            <Txt variant="caption" tone="muted">{post.sport ?? workout?.sport ?? ''}{post.sport || workout ? ' · ' : ''}{post.when}</Txt>
+          </View>
+        </Pressable>
+        {post.author.verified ? <VerifiedBadge /> : null}
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
@@ -84,6 +142,7 @@ export default function PostDetalhe() {
             <PostPhoto key={i} uri={ph.uri} art={ph.art} style={{ width, height: width * 0.75 }} />
           ))}
         </ScrollView>
+        {post.route ? <RouteMap path={post.route} height={200} /> : null}
         {post.photos.length > 1 ? (
           <View style={[s.row, { justifyContent: 'center', gap: 6, paddingTop: 8 }]}>
             {post.photos.map((_, i) => (
@@ -94,6 +153,17 @@ export default function PostDetalhe() {
 
         <View style={{ paddingHorizontal: 20, paddingTop: 12, gap: 12 }}>
           <Txt>{post.text}</Txt>
+
+          {post.stats ? (
+            <View style={[s.row, { gap: 8, padding: 12, borderRadius: 14, backgroundColor: colors.surface }]}>
+              {post.stats.map((st) => (
+                <View key={st.label} style={{ flex: 1, gap: 2 }}>
+                  <Txt variant="caption" tone="muted">{st.label}</Txt>
+                  <Txt variant="number">{st.value}</Txt>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
           {workout ? (
             <Pressable
@@ -111,7 +181,7 @@ export default function PostDetalhe() {
               accessibilityRole="button"
               accessibilityLabel={liked ? 'Descurtir' : 'Curtir'}
               accessibilityState={{ selected: liked }}
-              onPress={() => setLiked((v) => !v)}
+              onPress={() => toggleLike(id)}
               style={[s.row, { minHeight: 44, paddingRight: 12, gap: 6 }]}
             >
               <Icon name="heart" size={22} filled={liked} color={liked ? colors.accentInk : colors.textSoft} />
@@ -123,10 +193,12 @@ export default function PostDetalhe() {
           {comments.length === 0 ? <Txt variant="small" tone="muted">Seja o primeiro a comentar.</Txt> : null}
           {comments.map((c) => (
             <View key={c.id} style={[s.row, { gap: 10, alignItems: 'flex-start' }]}>
-              <Avatar initials={c.initials} color={c.color} size={34} />
+              <Pressable onPress={() => openAuthor(c.authorId)} accessibilityLabel={`Perfil de ${c.name}`}>
+                <Avatar initials={c.initials} color={c.color} size={34} uri={c.uri} />
+              </Pressable>
               <View style={{ flex: 1, gap: 2 }}>
                 <Txt variant="small">
-                  <Txt variant="small" style={{ fontFamily: fonts.bodySemi }}>{c.author}</Txt>
+                  <Txt variant="small" style={{ fontFamily: fonts.bodySemi }}>{c.name}</Txt>
                   <Txt variant="small" tone="faint">  {c.time}</Txt>
                 </Txt>
                 <Txt variant="small" tone="soft" style={{ fontSize: 14, lineHeight: 20 }}>{c.text}</Txt>

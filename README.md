@@ -49,8 +49,11 @@ npx expo start -c    # inicia limpando o cache
 - [x] Esportes: lista completa, opção "Outro" e painel de aprovação
 - [x] Perfil real: o cadastro (nome, @, foto, esportes, nível, região, nascimento) cria o seu perfil; editar perfil; posts próprios; telas vazias para conta nova
 
+> **Comunidade de teste:** os atletas em `src/data/community.ts` são fictícios e respondem sozinhos (comentário, chat, duelo e convite) para dar para testar sem outra pessoa. Saem quando o banco de dados entrar.
+>
 > **Testes:** a conta fica salva só no aparelho. Em Configurações → Sair, ela é apagada e dá para cadastrar outra do zero. Em Configurações → Administração → "Mostrar dados de exemplo" o perfil fica cheio de medalhas e treinos de exemplo.
-- [ ] Bora Treinar?, convites, chat e parceiros compatíveis
+- [x] Bora Treinar?: convites, criar convite, check-in, chat do treino e parceiros compatíveis
+- [x] Comunidade de teste: 6 atletas + 1 clube com treinos para curtir, comentar, seguir e desafiar (duelo 1×1 na Arena)
 - [ ] Arena: desafios, duelos, territórios, rankings
 - [ ] Treino com GPS e resumo do treino
 - [ ] Login real e banco de dados (Supabase)

@@ -6,7 +6,9 @@ import { Icon } from '@/components/Icon';
 import { PostCard } from '@/components/PostCard';
 import { Txt } from '@/components/Txt';
 import { Card, Chip, IconButton, Screen, s } from '@/components/ui';
-import { feedClubes, feedPerto, feedSeguindo } from '@/data/mock';
+import { EmptyState } from '@/components/profileParts';
+import { athleteById, communityPosts, inviteStatus } from '@/data/community';
+import { useCommunity } from '@/data/CommunityStore';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -16,7 +18,13 @@ type Filter = (typeof FILTERS)[number];
 export default function Feed() {
   const { colors } = useTheme();
   const [filter, setFilter] = useState<Filter>('Seguindo');
-  const posts = filter === 'Seguindo' ? feedSeguindo : filter === 'Perto de você' ? feedPerto : feedClubes;
+  const { following, invites, joined, declined } = useCommunity();
+  const isClub = (id: string) => !!athleteById(id)?.club;
+  const posts = communityPosts.filter((p) =>
+    filter === 'Clubes' ? isClub(p.athleteId) : filter === 'Seguindo' ? !!following[p.athleteId] : !following[p.athleteId] && !isClub(p.athleteId),
+  );
+  const openInvites = invites.filter((i) => i.hostId !== 'me' && !joined[i.id] && inviteStatus(i.start) !== 'encerrado');
+  const forMe = invites.filter((i) => i.invited.includes('me') && !joined[i.id] && !declined[i.id]).length;
   const soon = () => router.push('/em-breve');
 
   return (
@@ -52,9 +60,11 @@ export default function Feed() {
           </Pressable>
           <Card tone="accent" onPress={() => router.push('/(tabs)/bora')} style={{ paddingVertical: 14 }}>
             <View style={[s.row, { justifyContent: 'space-between' }]}>
-              <View style={{ gap: 2 }}>
+              <View style={{ gap: 2, flex: 1 }}>
                 <Txt variant="bodyStrong" tone="accent">Bora Treinar?</Txt>
-                <Txt variant="small" tone="soft">3 convites abertos perto de você hoje</Txt>
+                <Txt variant="small" tone="soft">
+                  {forMe > 0 ? `${forMe} convite para você · ` : ''}{openInvites.length} convites abertos perto de você
+                </Txt>
               </View>
               <Txt variant="bodyStrong" style={{ fontSize: 13 }}>Ver</Txt>
             </View>
@@ -65,6 +75,15 @@ export default function Feed() {
       {posts.map((p) => (
         <PostCard key={p.id} post={p} />
       ))}
+      {posts.length === 0 ? (
+        <EmptyState
+          icon="users"
+          title={filter === 'Seguindo' ? 'Você ainda não segue ninguém' : 'Nada por aqui ainda'}
+          text="Encontre atletas compatíveis com você no Bora Treinar? e siga quem treina perto."
+          action="Ver parceiros"
+          onAction={() => router.push({ pathname: '/(tabs)/bora', params: { aba: 'Parceiros' } })}
+        />
+      ) : null}
     </Screen>
   );
 }

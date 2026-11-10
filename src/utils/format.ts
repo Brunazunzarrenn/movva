@@ -20,3 +20,16 @@ export function birthDateError(v: string, partialOk = true): string | null {
   if (yyyy < year - 100 || dt > new Date()) return 'Confira o ano de nascimento.';
   return null;
 }
+
+// Horário com os dois pontos automáticos: 0630 -> 06:30.
+export function maskTime(text: string) {
+  const d = text.replace(/\D/g, '').slice(0, 4);
+  return d.length <= 2 ? d : `${d.slice(0, 2)}:${d.slice(2)}`;
+}
+
+export function timeError(v: string): string | null {
+  if (v.length < 5) return 'Digite o horário (ex.: 06:30).';
+  const [h, m] = v.split(':').map(Number);
+  if (h > 23 || m > 59) return 'Horário inválido.';
+  return null;
+}
