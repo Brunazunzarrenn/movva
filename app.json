@@ -29,7 +29,14 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O MOVVA acessa suas fotos para você adicionar imagens aos seus posts e treinos.",
+          "cameraPermission": "O MOVVA usa a câmera para você tirar fotos dos seus treinos."
+        }
+      ]
     ],
     "scheme": "movva",
     "experiments": {

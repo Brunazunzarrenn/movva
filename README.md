@@ -45,7 +45,8 @@ npx expo start -c    # inicia limpando o cache
 ## Etapas
 
 - [x] Etapa 1 — base, tema claro/escuro, boas-vindas, cadastro, feed, barra inferior, configurações
-- [ ] Perfil completo, galeria de conquistas, posts e treinos
+- [x] Etapa 2 — perfil completo: galeria, treinos, posts, medalha, detalhe do treino, post com comentários, novo post (fotos reais da galeria), Minha Evolução, Recordes
+- [x] Esportes: lista completa, opção "Outro" e painel de aprovação
 - [ ] Bora Treinar?, convites, chat e parceiros compatíveis
 - [ ] Arena: desafios, duelos, territórios, rankings
 - [ ] Treino com GPS e resumo do treino
