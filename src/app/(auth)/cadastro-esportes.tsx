@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
@@ -6,6 +6,7 @@ import { Icon } from '@/components/Icon';
 import { Progress } from '@/components/Progress';
 import { Txt } from '@/components/Txt';
 import { Button, Chip, IconButton, Screen, s } from '@/components/ui';
+import { useProfile } from '@/data/ProfileStore';
 import { useSports } from '@/data/SportsStore';
 import { normalizeSport } from '@/data/sports';
 import { fonts } from '@/theme/fonts';
@@ -14,8 +15,13 @@ import { useTheme } from '@/theme/ThemeProvider';
 export default function CadastroEsportes() {
   const { colors } = useTheme();
   const { categories, suggest } = useSports();
-  const [picked, setPicked] = useState<string[]>(['Corrida de rua', 'Ciclismo de estrada']);
-  const [custom, setCustom] = useState<string[]>([]); // esportes digitados em "Outro", em análise
+  const { draft, updateDraft, profile, updateProfile } = useProfile();
+  // modo=editar: aberto pelo "Editar perfil"; salva direto no perfil e volta.
+  const { modo } = useLocalSearchParams<{ modo?: string }>();
+  const editing = modo === 'editar' && !!profile;
+  const start = editing ? profile : draft;
+  const [picked, setPicked] = useState<string[]>(start?.sports ?? []);
+  const [custom, setCustom] = useState<string[]>(start?.pendingSports ?? []); // esportes digitados em "Outro", em análise
   const [query, setQuery] = useState('');
   const [otherOpen, setOtherOpen] = useState(false);
   const [otherText, setOtherText] = useState('');
@@ -63,13 +69,25 @@ export default function CadastroEsportes() {
           <Txt variant="small" tone="muted" style={{ textAlign: 'center' }}>
             {n} {n === 1 ? 'esporte escolhido' : 'esportes escolhidos'}
           </Txt>
-          <Button label="Continuar" disabled={n === 0} onPress={() => router.push('/cadastro-perfil')} />
+          <Button
+            label={editing ? 'Salvar esportes' : 'Continuar'}
+            disabled={n === 0}
+            onPress={() => {
+              if (editing) {
+                updateProfile({ sports: picked, pendingSports: custom });
+                router.back();
+              } else {
+                updateDraft({ sports: picked, pendingSports: custom });
+                router.push('/cadastro-perfil');
+              }
+            }}
+          />
         </>
       }
     >
       <View style={[s.row, { gap: 12 }]}>
         <IconButton icon="back" label="Voltar" onPress={() => router.back()} style={{ marginLeft: -12 }} />
-        <Progress step={1} total={2} />
+        {editing ? <Txt variant="bodyStrong">Seus esportes</Txt> : <Progress step={2} total={3} />}
       </View>
       <View style={{ gap: 8 }}>
         <Txt variant="title" accessibilityRole="header">Quais esportes você pratica?</Txt>

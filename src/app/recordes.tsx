@@ -3,8 +3,10 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
+import { EmptyState } from '@/components/profileParts';
 import { Txt } from '@/components/Txt';
 import { Button, Chip, Header, Screen, s } from '@/components/ui';
+import { useProfile } from '@/data/ProfileStore';
 import { records } from '@/data/profile';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -16,6 +18,22 @@ export default function Recordes() {
   const [group, setGroup] = useState<(typeof GROUPS)[number]>('Todos');
   const latest = records.find((r) => r.isNew);
   const list = group === 'Todos' ? records : records.filter((r) => r.group === group);
+  const { demo } = useProfile();
+
+  if (!demo) {
+    return (
+      <Screen>
+        <Header title="Recordes pessoais" />
+        <EmptyState
+          icon="trophy"
+          title="Nenhum recorde ainda"
+          text="Seus 5 km e 10 km mais rápidos, maiores distâncias e sequências aparecem aqui sozinhos conforme você treina."
+          action="Registrar treino"
+          onAction={() => router.push('/treino')}
+        />
+      </Screen>
+    );
+  }
 
   return (
     <Screen>

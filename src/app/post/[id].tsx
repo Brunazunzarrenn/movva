@@ -3,11 +3,11 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PhotoArtView } from '@/components/athlete';
 import { Icon } from '@/components/Icon';
+import { PostPhoto } from '@/components/profileParts';
 import { Txt } from '@/components/Txt';
 import { Avatar, IconButton, s } from '@/components/ui';
-import { me } from '@/data/mock';
+import { colorOf, initialsOf, useProfile } from '@/data/ProfileStore';
 import { myPosts, workouts, type Comment } from '@/data/profile';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -17,28 +17,57 @@ export default function PostDetalhe() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const post = myPosts.find((p) => p.id === id) ?? myPosts[0];
-  const workout = workouts.find((w) => w.id === post.workoutId);
+  const { profile, posts } = useProfile();
+
+  // Post do próprio usuário (publicado no app) ou dos dados de exemplo.
+  const own = posts.find((p) => p.id === id);
+  const sample = myPosts.find((p) => p.id === id);
+  const post = own
+    ? {
+        photos: own.photoUris.map((uri) => ({ uri, art: undefined as number | undefined })),
+        text: own.text,
+        when: new Date(own.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+        workoutId: own.workoutId,
+        likes: 0,
+        comments: [] as Comment[],
+      }
+    : sample
+      ? { photos: sample.photos.map((art) => ({ uri: undefined, art })), text: sample.text, when: sample.when, workoutId: sample.workoutId, likes: sample.likes, comments: sample.comments }
+      : null;
+  const workout = workouts.find((w) => w.id === post?.workoutId);
 
   const [liked, setLiked] = useState(false);
   const [photo, setPhoto] = useState(0);
-  const [comments, setComments] = useState<Comment[]>(post.comments);
+  const [comments, setComments] = useState<Comment[]>(post?.comments ?? []);
   const [draft, setDraft] = useState('');
+
+  const authorName = profile?.name ?? 'Você';
+  const authorInitials = initialsOf(authorName);
+  const authorColor = colorOf(profile?.username ?? authorName);
 
   const send = () => {
     const text = draft.trim();
     if (!text) return;
-    setComments((cur) => [...cur, { id: 'n' + Date.now(), author: me.name, initials: me.initials, color: me.color, time: 'agora', text }]);
+    setComments((cur) => [...cur, { id: 'n' + Date.now(), author: authorName, initials: authorInitials, color: authorColor, time: 'agora', text }]);
     setDraft('');
   };
+
+  if (!post) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + 8, paddingHorizontal: 12 }}>
+        <IconButton icon="back" label="Voltar" onPress={() => router.back()} />
+        <Txt tone="muted" style={{ textAlign: 'center', marginTop: 40 }}>Esse post não existe mais.</Txt>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={[s.row, { gap: 10, paddingTop: insets.top + 8, paddingHorizontal: 12, paddingBottom: 8 }]}>
         <IconButton icon="back" label="Voltar" onPress={() => router.back()} />
-        <Avatar initials={me.initials} color={me.color} size={38} />
+        <Avatar initials={authorInitials} color={authorColor} size={38} uri={profile?.photoUri} />
         <View style={{ gap: 2 }}>
-          <Txt variant="bodyStrong">{me.name}</Txt>
+          <Txt variant="bodyStrong">{authorName}</Txt>
           <Txt variant="caption" tone="muted">{workout ? `${workout.sport} · ` : ''}{post.when}</Txt>
         </View>
       </View>
@@ -52,7 +81,7 @@ export default function PostDetalhe() {
           onMomentumScrollEnd={(e) => setPhoto(Math.round(e.nativeEvent.contentOffset.x / width))}
         >
           {post.photos.map((ph, i) => (
-            <PhotoArtView key={i} index={ph} style={{ width, height: width * 0.75 }} />
+            <PostPhoto key={i} uri={ph.uri} art={ph.art} style={{ width, height: width * 0.75 }} />
           ))}
         </ScrollView>
         {post.photos.length > 1 ? (

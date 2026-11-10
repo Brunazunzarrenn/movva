@@ -47,6 +47,9 @@ npx expo start -c    # inicia limpando o cache
 - [x] Etapa 1 — base, tema claro/escuro, boas-vindas, cadastro, feed, barra inferior, configurações
 - [x] Etapa 2 — perfil completo: galeria, treinos, posts, medalha, detalhe do treino, post com comentários, novo post (fotos reais da galeria), Minha Evolução, Recordes
 - [x] Esportes: lista completa, opção "Outro" e painel de aprovação
+- [x] Perfil real: o cadastro (nome, @, foto, esportes, nível, região, nascimento) cria o seu perfil; editar perfil; posts próprios; telas vazias para conta nova
+
+> **Testes:** a conta fica salva só no aparelho. Em Configurações → Sair, ela é apagada e dá para cadastrar outra do zero. Em Configurações → Administração → "Mostrar dados de exemplo" o perfil fica cheio de medalhas e treinos de exemplo.
 - [ ] Bora Treinar?, convites, chat e parceiros compatíveis
 - [ ] Arena: desafios, duelos, territórios, rankings
 - [ ] Treino com GPS e resumo do treino

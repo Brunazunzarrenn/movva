@@ -10,7 +10,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 export default function BoasVindas() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const start = () => router.push('/cadastro-esportes');
+  const start = () => router.push('/cadastro-nome');
 
   return (
     <LinearGradient

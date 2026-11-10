@@ -30,6 +30,8 @@ type Store = {
   reject: (id: string) => void;
   merge: (id: string, into: string) => void;
   reopen: (id: string) => void;
+  // Situação de um esporte que o usuário digitou em "Outro".
+  resolvePending: (name: string) => { status: SuggestionStatus; sport: string };
 };
 
 const KEY = 'movva.esportes.v1';
@@ -105,6 +107,12 @@ export function SportsProvider({ children }: { children: ReactNode }) {
       reject: (id) => update(id, { status: 'recusado' }),
       merge: (id, into) => update(id, { status: 'juntado', mergedInto: into }),
       reopen: (id) => update(id, { status: 'pendente', categoryId: undefined, mergedInto: undefined }),
+      resolvePending: (name) => {
+        const sug = suggestions.find((x) => normalizeSport(x.name) === normalizeSport(name));
+        if (!sug) return { status: 'pendente', sport: name };
+        if (sug.status === 'juntado' && sug.mergedInto) return { status: 'juntado', sport: sug.mergedInto };
+        return { status: sug.status, sport: sug.name };
+      },
     };
   }, [suggestions]);
 

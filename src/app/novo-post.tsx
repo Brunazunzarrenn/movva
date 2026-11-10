@@ -6,6 +6,7 @@ import { Image, Pressable, Switch, TextInput, View } from 'react-native';
 import { Icon } from '@/components/Icon';
 import { Txt } from '@/components/Txt';
 import { Button, Chip, Header, Screen, Segmented, s } from '@/components/ui';
+import { useProfile } from '@/data/ProfileStore';
 import { workouts } from '@/data/profile';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -16,6 +17,7 @@ const VIS = ['Público', 'Seguidores', 'Só eu'] as const;
 
 export default function NovoPost() {
   const { colors } = useTheme();
+  const { addPost, demo } = useProfile();
   const [text, setText] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [linkWorkout, setLinkWorkout] = useState(true);
@@ -41,9 +43,16 @@ export default function NovoPost() {
   };
 
   const canPublish = text.trim().length > 0 || photos.length > 0;
+  // Só dá para vincular treino quando existe algum (por enquanto, nos dados de exemplo).
+  const canLink = demo && workouts.length > 0;
+
+  const publish = () => {
+    addPost({ text: text.trim(), photoUris: photos, workoutId: canLink && linkWorkout ? workoutId : undefined, visibility: vis });
+    router.back();
+  };
 
   return (
-    <Screen footer={<Button label="Publicar" disabled={!canPublish} onPress={() => router.back()} />}>
+    <Screen footer={<Button label="Publicar" disabled={!canPublish} onPress={publish} />}>
       <Header title="Novo post" />
 
       <View style={{ gap: 6 }}>
@@ -100,6 +109,7 @@ export default function NovoPost() {
         {error ? <Txt variant="caption" tone="danger">{error}</Txt> : null}
       </View>
 
+      {canLink ? (
       <View style={{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, gap: 10 }}>
         <View style={[s.row, { gap: 12 }]}>
           <View style={{ flex: 1, gap: 2 }}>
@@ -124,6 +134,7 @@ export default function NovoPost() {
           </View>
         ) : null}
       </View>
+      ) : null}
 
       <View style={{ gap: 8 }}>
         <Txt variant="bodyStrong">Quem pode ver</Txt>

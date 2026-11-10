@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
@@ -189,7 +189,16 @@ export function Card({ children, style, tone = 'surface', onPress }: { children:
 
 /* ---------- Avatar ---------- */
 
-export function Avatar({ initials, color, size = 40, ring, square }: { initials: string; color: string; size?: number; ring?: string; square?: boolean }) {
+export function Avatar({ initials, color, size = 40, ring, square, uri }: { initials: string; color: string; size?: number; ring?: string; square?: boolean; uri?: string }) {
+  if (uri) {
+    return (
+      <Image
+        source={{ uri }}
+        accessibilityIgnoresInvertColors
+        style={{ width: size, height: size, borderRadius: square ? size * 0.28 : size / 2, borderWidth: ring ? 3 : 0, borderColor: ring }}
+      />
+    );
+  }
   return (
     <View
       accessibilityElementsHidden

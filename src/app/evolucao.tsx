@@ -4,8 +4,10 @@ import { Pressable, View } from 'react-native';
 
 import { LineChart } from '@/components/athlete';
 import { Icon } from '@/components/Icon';
+import { EmptyState } from '@/components/profileParts';
 import { Txt } from '@/components/Txt';
 import { Card, Chip, Header, Screen, SectionTitle, s } from '@/components/ui';
+import { useProfile } from '@/data/ProfileStore';
 import { evolution, monthCompare } from '@/data/profile';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -14,6 +16,22 @@ export default function Evolucao() {
   const { colors } = useTheme();
   const [key, setKey] = useState(evolution[0].key);
   const m = evolution.find((e) => e.key === key) ?? evolution[0];
+  const { demo } = useProfile();
+
+  if (!demo) {
+    return (
+      <Screen>
+        <Header title="Minha Evolução" />
+        <EmptyState
+          icon="trend"
+          title="Sua evolução começa no primeiro treino"
+          text="Com alguns treinos registrados, mostramos aqui seu pace, velocidade, volume, altimetria e a comparação entre os meses."
+          action="Registrar treino"
+          onAction={() => router.push('/treino')}
+        />
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
