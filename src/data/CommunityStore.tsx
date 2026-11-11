@@ -5,6 +5,7 @@ import {
   athleteById, autoReplies, communityPosts, seedInvites,
   type BoraInvite, type ChatMessage, type Duel, type DuelMetric,
 } from '@/data/community';
+import { seedChallenges, type Challenge } from '@/data/arena';
 import { useProfile } from '@/data/ProfileStore';
 
 // Tudo o que você faz com a comunidade de teste: curtidas, comentários, quem você
@@ -24,11 +25,14 @@ type Saved = {
   extraParticipants: Record<string, string[]>; // atletas que confirmaram nos seus convites
   checkins: Record<string, string>;
   messages: Record<string, ChatMessage[]>;
+  joinedChallenges: Record<string, boolean>;
+  myChallenges: Challenge[];
 };
 
 const EMPTY: Saved = {
   likes: {}, comments: {}, following: { mariana: true, bruno: true, lucas: true, girobh: true },
   duels: [], myInvites: [], joined: {}, declined: {}, extraParticipants: {}, checkins: {}, messages: {},
+  joinedChallenges: {}, myChallenges: [],
 };
 
 const KEY = 'movva.comunidade.v1';
@@ -49,6 +53,10 @@ type Store = Saved & {
   decline: (id: string) => void;
   checkIn: (id: string) => void;
   sendMessage: (inviteId: string, text: string) => void;
+  challenges: Challenge[]; // seus desafios + os de teste
+  setChallengeJoined: (id: string, v: boolean) => void;
+  createChallenge: (c: Omit<Challenge, 'id' | 'creatorId' | 'progress' | 'crowd'>) => Challenge;
+  deleteChallenge: (id: string) => void;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -61,6 +69,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [data, setData] = useState<Saved>(EMPTY);
   const seed = useRef(seedInvites()).current;
+  const seedCh = useRef(seedChallenges()).current;
 
   useEffect(() => {
     AsyncStorage.getItem(KEY)
@@ -78,17 +87,24 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     if (ready && profileReady && !profile) setData(EMPTY);
   }, [ready, profileReady, profile]);
 
-  // Duelos que ficaram esperando com o app fechado são aceitos ao abrir de novo.
+  // Duelos que ficaram esperando (app fechado ou recarregado) são aceitos quando o prazo vence.
+  const pendingKey = data.duels.filter((d) => d.status === 'aguardando').map((d) => d.id).join(',');
   useEffect(() => {
-    if (!ready) return;
-    const late = data.duels.some((d) => d.status === 'aguardando' && Date.now() - new Date(d.createdAt).getTime() > DUEL_MS);
-    if (late) {
-      setData((s) => ({
-        ...s,
-        duels: s.duels.map((d) => (d.status === 'aguardando' ? { ...d, status: 'aceito', answeredAt: new Date().toISOString() } : d)),
-      }));
-    }
-  }, [ready, data.duels]);
+    if (!ready || !pendingKey) return;
+    const timers = data.duels
+      .filter((d) => d.status === 'aguardando')
+      .map((d) => {
+        const wait = Math.max(0, DUEL_MS - (Date.now() - new Date(d.createdAt).getTime()));
+        return setTimeout(() => {
+          setData((s) => ({
+            ...s,
+            duels: s.duels.map((x) => (x.id === d.id && x.status === 'aguardando' ? { ...x, status: 'aceito', answeredAt: new Date().toISOString() } : x)),
+          }));
+        }, wait);
+      });
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, pendingKey]);
 
   const later = useCallback((ms: number, fn: (s: Saved) => Saved) => {
     setTimeout(() => setData(fn), ms);
@@ -102,6 +118,21 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     return {
       ...data,
       invites,
+      challenges: [...data.myChallenges, ...seedCh],
+      setChallengeJoined: (id, v) => setData((s) => ({ ...s, joinedChallenges: { ...s.joinedChallenges, [id]: v } })),
+      createChallenge: (c) => {
+        const created: Challenge = { ...c, id: uid('ch'), creatorId: 'me', progress: {}, crowd: 0 };
+        setData((s) => ({ ...s, myChallenges: [created, ...s.myChallenges], joinedChallenges: { ...s.joinedChallenges, [created.id]: true } }));
+        // Convidados de teste entram no desafio depois de alguns segundos.
+        c.invited.forEach((aid, i) => {
+          later(REPLY_MS + i * 1200, (s) => ({
+            ...s,
+            myChallenges: s.myChallenges.map((x) => (x.id === created.id ? { ...x, progress: { ...x.progress, [aid]: 0 } } : x)),
+          }));
+        });
+        return created;
+      },
+      deleteChallenge: (id) => setData((s) => ({ ...s, myChallenges: s.myChallenges.filter((x) => x.id !== id) })),
       chat: (id) => [...(seed.chats[id] ?? []), ...(data.messages[id] ?? [])],
       toggleLike: (postId) => setData((s) => ({ ...s, likes: { ...s.likes, [postId]: !s.likes[postId] } })),
       addComment: (postId, text) => {
@@ -121,10 +152,6 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       createDuel: ({ athleteId, metric, days, note }) => {
         const d: Duel = { id: uid('d'), athleteId, metric, days, note, createdAt: new Date().toISOString(), status: 'aguardando' };
         setData((s) => ({ ...s, duels: [d, ...s.duels.filter((x) => !(x.athleteId === athleteId && x.status !== 'recusado'))] }));
-        later(DUEL_MS, (s) => ({
-          ...s,
-          duels: s.duels.map((x) => (x.id === d.id && x.status === 'aguardando' ? { ...x, status: 'aceito', answeredAt: new Date().toISOString() } : x)),
-        }));
         return d;
       },
       cancelDuel: (id) => setData((s) => ({ ...s, duels: s.duels.filter((d) => d.id !== id) })),
@@ -164,7 +191,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         }
       },
     };
-  }, [data, seed, later]);
+  }, [data, seed, seedCh, later]);
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }

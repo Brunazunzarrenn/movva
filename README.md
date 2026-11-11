@@ -54,7 +54,7 @@ npx expo start -c    # inicia limpando o cache
 > **Testes:** a conta fica salva só no aparelho. Em Configurações → Sair, ela é apagada e dá para cadastrar outra do zero. Em Configurações → Administração → "Mostrar dados de exemplo" o perfil fica cheio de medalhas e treinos de exemplo.
 - [x] Bora Treinar?: convites, criar convite, check-in, chat do treino e parceiros compatíveis
 - [x] Comunidade de teste: 6 atletas + 1 clube com treinos para curtir, comentar, seguir e desafiar (duelo 1×1 na Arena)
-- [ ] Arena: desafios, duelos, territórios, rankings
+- [x] Arena: desafios (oficiais, da comunidade e criados por você, com medalha personalizada), trechos sem inscrição, rankings, duelos e territórios
 - [ ] Treino com GPS e resumo do treino
 - [ ] Login real e banco de dados (Supabase)
 - [ ] Assinaturas (MOVVA Pro) e publicação nas lojas
