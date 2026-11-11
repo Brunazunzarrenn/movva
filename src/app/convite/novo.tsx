@@ -7,6 +7,7 @@ import { useProfileSports } from '@/components/profileParts';
 import { TextField } from '@/components/TextField';
 import { Txt } from '@/components/Txt';
 import { Avatar, Button, Chip, Header, Screen, Segmented, s } from '@/components/ui';
+import { fieldsFor, trainingOptions } from '@/data/activity';
 import { athleteById, athletes, compatibility, type InviteVisibility } from '@/data/community';
 import { useCommunity } from '@/data/CommunityStore';
 import { levels } from '@/data/mock';
@@ -30,7 +31,7 @@ export default function NovoConvite() {
 
   // Esportes: os seus primeiro; se veio convidar alguém, os em comum aparecem antes.
   const sportOptions = useMemo(() => {
-    const list = [...mySports];
+    const list = trainingOptions(mySports);
     for (const sp of guest?.sports ?? []) if (!list.includes(sp)) list.push(sp);
     return list.length ? list : FALLBACK_SPORTS;
   }, [mySports, guest]);
@@ -50,11 +51,13 @@ export default function NovoConvite() {
   const [level, setLevel] = useState<Level | 'Todos os níveis'>(profile?.level ?? 'Todos os níveis');
   const [distance, setDistance] = useState('');
   const [pace, setPace] = useState('');
+  const [duration, setDuration] = useState('');
   const [spots, setSpots] = useState(6);
   const [vis, setVis] = useState<InviteVisibility>(guest ? 'Só convidados' : 'Público');
   const [invited, setInvited] = useState<string[]>(guest ? [guest.id] : []);
   const [note, setNote] = useState('');
   const [tried, setTried] = useState(false);
+  const f = fieldsFor(sport);
 
   const partners = athletes
     .filter((a) => !a.club)
@@ -82,8 +85,8 @@ export default function NovoConvite() {
       start: start.toISOString(),
       place: place.trim(),
       level,
-      distance: distance.trim() || undefined,
-      pace: pace.trim() || undefined,
+      distance: f.hasDistance ? distance.trim() || undefined : duration.trim() || undefined,
+      pace: f.hasDistance && f.paceLabel ? pace.trim() || undefined : undefined,
       spots,
       invited,
       visibility: vis,
@@ -137,14 +140,21 @@ export default function NovoConvite() {
         </View>
       </View>
 
-      <View style={[s.row, { gap: 10, alignItems: 'flex-start' }]}>
-        <View style={{ flex: 1 }}>
-          <TextField label="Distância" value={distance} onChangeText={setDistance} placeholder="8 km" />
+      {/* Distância e ritmo só para esportes que têm (jiu-jitsu, vôlei, musculação não têm). */}
+      {f.hasDistance ? (
+        <View style={[s.row, { gap: 10, alignItems: 'flex-start' }]}>
+          <View style={{ flex: 1 }}>
+            <TextField label="Distância" value={distance} onChangeText={setDistance} placeholder={f.distancePlaceholder} />
+          </View>
+          {f.paceLabel ? (
+            <View style={{ flex: 1 }}>
+              <TextField label={f.paceLabel} value={pace} onChangeText={setPace} placeholder={f.pacePlaceholder} />
+            </View>
+          ) : null}
         </View>
-        <View style={{ flex: 1 }}>
-          <TextField label="Ritmo" value={pace} onChangeText={setPace} placeholder="6′00″/km" />
-        </View>
-      </View>
+      ) : (
+        <TextField label="Duração (opcional)" value={duration} onChangeText={setDuration} placeholder="Ex.: 1h30, 4 rounds de 6 min" />
+      )}
 
       <View style={[s.row, { justifyContent: 'space-between' }]}>
         <View style={{ gap: 2 }}>

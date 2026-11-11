@@ -10,6 +10,7 @@ import { fmtGoal, rankingOf, rankMetrics, segments, type Challenge, type RankMet
 import { athleteById, athletes } from '@/data/community';
 import { useCommunity } from '@/data/CommunityStore';
 import { initialsOf, useProfile } from '@/data/ProfileStore';
+import { totals, weekStart } from '@/data/progress';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -177,7 +178,7 @@ function Competicoes() {
 }
 
 function Rankings() {
-  const { profile } = useProfile();
+  const { profile, workouts } = useProfile();
   const { following } = useCommunity();
   const [metric, setMetric] = useState<RankMetric>('km');
   const [scope, setScope] = useState<(typeof SCOPES)[number]>('Seguindo');
@@ -187,7 +188,8 @@ function Rankings() {
   const pool = athletes.filter((a) =>
     scope === 'Seguindo' ? following[a.id] : scope === 'Perto' ? city.split(/[\s,]+/).some((w) => w.length > 3 && a.region.toLowerCase().includes(w)) : true,
   );
-  const rows = [...rankingOf(pool, metric), { id: 'me', value: 0 }].sort((x, y) => y.value - x.value);
+  const mine = totals(workouts, weekStart())[metric === 'km' ? 'km' : metric === 'treinos' ? 'treinos' : 'horas'];
+  const rows = [...rankingOf(pool, metric), { id: 'me', value: mine }].sort((x, y) => y.value - x.value);
   const fmt = (v: number) => `${String(v).replace('.', ',')} ${unit}`;
 
   return (

@@ -7,6 +7,7 @@ import { Avatar, Button, s } from '@/components/ui';
 import { athleteById, duelMetrics, inviteStatus, whenLabel, type BoraInvite, type Duel } from '@/data/community';
 import { useCommunity } from '@/data/CommunityStore';
 import { colorOf, initialsOf, useProfile } from '@/data/ProfileStore';
+import { totals } from '@/data/progress';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -111,6 +112,7 @@ export function InviteCard({ inv }: { inv: BoraInvite }) {
 export function DuelCard({ duel, compact }: { duel: Duel; compact?: boolean }) {
   const { colors } = useTheme();
   const { cancelDuel } = useCommunity();
+  const { workouts } = useProfile();
   const person = usePerson();
   const a = athleteById(duel.athleteId);
   const me = person('me');
@@ -121,8 +123,8 @@ export function DuelCard({ duel, compact }: { duel: Duel; compact?: boolean }) {
   const endsAt = startedAt + duel.days * 86400000;
   const daysLeft = Math.max(0, Math.ceil((endsAt - Date.now()) / 86400000));
   const elapsed = Math.min(1, Math.max(0.08, (Date.now() - startedAt) / (duel.days * 86400000)));
-  // Seus treinos reais entram quando o GPS estiver pronto; por enquanto você começa do zero.
-  const mine = 0;
+  // Seus treinos gravados desde que o duelo começou.
+  const mine = duel.status === 'aceito' ? totals(workouts, startedAt, endsAt)[duel.metric] : 0;
   const raw = ((a.week[duel.metric] * duel.days) / 7) * elapsed;
   const theirs = duel.status !== 'aceito' ? 0 : duel.metric === 'treinos' || duel.metric === 'subida' ? Math.floor(raw) : Math.round(raw * 10) / 10;
   const top = Math.max(mine, theirs, 1);

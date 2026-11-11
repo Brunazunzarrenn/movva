@@ -6,6 +6,7 @@ import { Txt } from '@/components/Txt';
 import { Button, Header, Screen, SectionTitle, s } from '@/components/ui';
 import { creatorName, fmtGoal, goalTypes } from '@/data/arena';
 import { useCommunity } from '@/data/CommunityStore';
+import { useProfile } from '@/data/ProfileStore';
 import { fonts } from '@/theme/fonts';
 import { rarityLabel } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -17,7 +18,8 @@ export default function DesafioDetalhe() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { challenges, joinedChallenges, setChallengeJoined, deleteChallenge } = useCommunity();
   const c = challenges.find((x) => x.id === id);
-  const st = c ? challengeState(c, joinedChallenges) : null;
+  const { workouts } = useProfile();
+  const st = c ? challengeState(c, joinedChallenges, workouts) : null;
 
   if (!c || !st) {
     return (

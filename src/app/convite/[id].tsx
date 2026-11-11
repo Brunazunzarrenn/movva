@@ -5,6 +5,7 @@ import { Icon, type IconName } from '@/components/Icon';
 import { usePerson } from '@/components/social';
 import { Txt } from '@/components/Txt';
 import { Avatar, Button, Header, RouteMap, Screen, SectionTitle, VerifiedBadge, s } from '@/components/ui';
+import { fieldsFor } from '@/data/activity';
 import { athleteById, inviteStatus, whenLabel } from '@/data/community';
 import { useCommunity } from '@/data/CommunityStore';
 import { fonts } from '@/theme/fonts';
@@ -29,6 +30,7 @@ export default function ConviteDetalhe() {
   }
 
   const host = person(inv.hostId);
+  const fields = fieldsFor(inv.sport);
   const hostAthlete = athleteById(inv.hostId);
   const isHost = inv.hostId === 'me';
   const going = isHost || !!joined[inv.id];
@@ -44,8 +46,8 @@ export default function ConviteDetalhe() {
     { icon: 'clock', label: 'Quando', value: whenLabel(inv.start) },
     { icon: 'pin', label: 'Onde', value: inv.place },
     { icon: 'trend', label: 'Nível', value: inv.level },
-    ...(inv.distance ? [{ icon: 'flag' as IconName, label: 'Distância', value: inv.distance }] : []),
-    ...(inv.pace ? [{ icon: 'bolt' as IconName, label: 'Ritmo', value: inv.pace }] : []),
+    ...(inv.distance ? [{ icon: 'flag' as IconName, label: fields.hasDistance ? 'Distância' : 'Duração', value: inv.distance }] : []),
+    ...(inv.pace && fields.hasDistance ? [{ icon: 'bolt' as IconName, label: fields.paceLabel ?? 'Ritmo', value: inv.pace }] : []),
     { icon: 'users', label: 'Vagas', value: `${people.length} de ${inv.spots} confirmados` },
   ];
 

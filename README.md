@@ -51,10 +51,14 @@ npx expo start -c    # inicia limpando o cache
 
 > **Comunidade de teste:** os atletas em `src/data/community.ts` são fictícios e respondem sozinhos (comentário, chat, duelo e convite) para dar para testar sem outra pessoa. Saem quando o banco de dados entrar.
 >
+> **Versão no celular:** em Configurações, no fim da tela, aparece a etapa da versão (ex.: "Etapa 7 · Treino com GPS"). Se aparecer outra, o celular está com a versão antiga: rode `npm install` e `npx expo start -c` (o `-c` limpa o cache).
+>
+> **GPS no teste:** no Expo Go o GPS grava com o app aberto na tela. Gravar com a tela bloqueada exige o app instalado de verdade (build), que vem na etapa de publicação. Para testar parado, ligue "Simular GPS".
+>
 > **Testes:** a conta fica salva só no aparelho. Em Configurações → Sair, ela é apagada e dá para cadastrar outra do zero. Em Configurações → Administração → "Mostrar dados de exemplo" o perfil fica cheio de medalhas e treinos de exemplo.
 - [x] Bora Treinar?: convites, criar convite, check-in, chat do treino e parceiros compatíveis
 - [x] Comunidade de teste: 6 atletas + 1 clube com treinos para curtir, comentar, seguir e desafiar (duelo 1×1 na Arena)
 - [x] Arena: desafios (oficiais, da comunidade e criados por você, com medalha personalizada), trechos sem inscrição, rankings, duelos e territórios
-- [ ] Treino com GPS e resumo do treino
+- [x] Treino: GPS (corrida, pedal, águas abertas), piscina por voltas, só cronômetro (jiu-jítsu, musculação, vôlei…), multiesporte com transições (triathlon) e lançamento manual; treinos contam em desafios, duelos e rankings
 - [ ] Login real e banco de dados (Supabase)
 - [ ] Assinaturas (MOVVA Pro) e publicação nas lojas

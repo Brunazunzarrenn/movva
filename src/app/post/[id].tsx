@@ -10,6 +10,8 @@ import { Avatar, IconButton, RouteMap, VerifiedBadge, s } from '@/components/ui'
 import { colorOf, initialsOf, useProfile } from '@/data/ProfileStore';
 import { agoLabel, athleteById, communityPosts, minutesSince } from '@/data/community';
 import { useCommunity } from '@/data/CommunityStore';
+import { pathFromCoords } from '@/data/activity';
+import { workoutStats } from '@/components/workout';
 import { myPosts, workouts } from '@/data/profile';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -19,7 +21,7 @@ export default function PostDetalhe() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { profile, posts } = useProfile();
+  const { profile, posts, workouts: myWorkouts } = useProfile();
   const { likes, comments: stored, toggleLike, addComment } = useCommunity();
 
   type PostView = {
@@ -44,6 +46,7 @@ export default function PostDetalhe() {
 
   // O post pode ser seu, de um atleta da comunidade de teste ou dos dados de exemplo.
   const own = posts.find((p) => p.id === id);
+  const ownWorkout = own?.workoutId ? myWorkouts.find((w) => w.id === own.workoutId) : undefined;
   const community = communityPosts.find((p) => p.id === id);
   const sample = myPosts.find((p) => p.id === id);
   const cAuthor = community ? athleteById(community.athleteId) : undefined;
@@ -56,6 +59,9 @@ export default function PostDetalhe() {
         likes: 0,
         author: meAuthor,
         seed: [],
+        ...(ownWorkout
+          ? { sport: ownWorkout.sport, route: pathFromCoords(ownWorkout.coords) || undefined, stats: workoutStats(ownWorkout).slice(0, 3) }
+          : {}),
       }
     : community && cAuthor
       ? {
@@ -165,13 +171,13 @@ export default function PostDetalhe() {
             </View>
           ) : null}
 
-          {workout ? (
+          {workout || ownWorkout ? (
             <Pressable
               accessibilityRole="button"
-              onPress={() => router.push({ pathname: '/atividade/[id]', params: { id: workout.id } })}
+              onPress={() => router.push({ pathname: '/atividade/[id]', params: { id: (ownWorkout ?? workout)!.id } })}
               style={[s.row, { justifyContent: 'space-between', padding: 12, borderRadius: 12, backgroundColor: colors.surface }]}
             >
-              <Txt variant="small" tone="soft">{workout.distance} · {workout.duration}</Txt>
+              <Txt variant="small" tone="soft">{ownWorkout ? ownWorkout.title : `${workout!.distance} · ${workout!.duration}`}</Txt>
               <Txt variant="small" tone="accent" style={{ fontFamily: fonts.bodySemi }}>Ver treino</Txt>
             </Pressable>
           ) : null}

@@ -36,6 +36,12 @@
           "photosPermission": "O MOVVA acessa suas fotos para você adicionar imagens aos seus posts e treinos.",
           "cameraPermission": "O MOVVA usa a câmera para você tirar fotos dos seus treinos."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O MOVVA usa sua localização para gravar o percurso, a distância e o ritmo dos seus treinos."
+        }
       ]
     ],
     "scheme": "movva",

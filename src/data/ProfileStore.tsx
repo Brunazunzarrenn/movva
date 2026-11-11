@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
+import type { ActivityKind } from '@/data/activity';
 import { avatarColors } from '@/theme/colors';
 
 // Perfil do usuário criado no cadastro e os posts que ele publica.
@@ -33,6 +34,33 @@ export type UserPost = {
   createdAt: string;
 };
 
+export type WorkoutLeg = { sport: string; sec: number; km: number; transition?: boolean };
+
+// Treino registrado no app. `source` diz como foi medido: só 'gps' e 'cronometro'
+// (gravados ao vivo) e 'simulado' (versão de teste) contam em desafios e rankings.
+export type UserWorkout = {
+  id: string;
+  sport: string;
+  kind: ActivityKind;
+  title: string;
+  start: string; // ISO
+  sec: number; // tempo em movimento
+  elapsedSec: number; // tempo total, com pausas
+  km: number;
+  elevation: number; // metros de subida
+  coords: [number, number][]; // percurso (lat, lon), reduzido
+  legs?: WorkoutLeg[];
+  poolLength?: number;
+  laps?: number;
+  rpe: number; // esforço percebido 1 a 10
+  kcal: number;
+  notes?: string;
+  visibility: Visibility;
+  source: 'gps' | 'cronometro' | 'manual' | 'simulado';
+};
+
+export const isVerified = (w: UserWorkout) => w.source !== 'manual';
+
 export type SignupDraft = Partial<Omit<Profile, 'createdAt'>>;
 
 type Store = {
@@ -45,13 +73,16 @@ type Store = {
   completeSignup: (last: SignupDraft) => Profile | null; // junta o último passo ao rascunho e cria o perfil
   updateProfile: (patch: Partial<Profile>) => void;
   addPost: (p: Omit<UserPost, 'id' | 'createdAt'>) => void;
+  workouts: UserWorkout[];
+  addWorkout: (w: Omit<UserWorkout, 'id'>) => UserWorkout;
+  deleteWorkout: (id: string) => void;
   setDemo: (v: boolean) => void;
   signOut: () => void;
 };
 
 const KEY = 'movva.perfil.v1';
 
-type Saved = { profile: Profile | null; posts: UserPost[]; demo: boolean };
+type Saved = { profile: Profile | null; posts: UserPost[]; demo: boolean; workouts?: UserWorkout[] };
 
 const Ctx = createContext<Store | null>(null);
 
@@ -60,6 +91,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<UserPost[]>([]);
   const [demo, setDemo] = useState(false);
+  const [workouts, setWorkouts] = useState<UserWorkout[]>([]);
   const [draft, setDraft] = useState<SignupDraft>({});
 
   useEffect(() => {
@@ -70,6 +102,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setProfile(s.profile);
         setPosts(s.posts ?? []);
         setDemo(!!s.demo);
+        setWorkouts(s.workouts ?? []);
       })
       .catch(() => {})
       .finally(() => setReady(true));
@@ -77,9 +110,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
-    const data: Saved = { profile, posts, demo };
+    const data: Saved = { profile, posts, demo, workouts };
     AsyncStorage.setItem(KEY, JSON.stringify(data)).catch(() => {});
-  }, [ready, profile, posts, demo]);
+  }, [ready, profile, posts, demo, workouts]);
 
   const store = useMemo<Store>(
     () => ({
@@ -106,20 +139,32 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         };
         setProfile(p);
         setPosts([]);
+        setWorkouts([]);
         setDraft({});
         return p;
       },
       updateProfile: (patch) => setProfile((p) => (p ? { ...p, ...patch } : p)),
       addPost: (p) => setPosts((cur) => [{ ...p, id: 'u' + Date.now(), createdAt: new Date().toISOString() }, ...cur]),
+      workouts,
+      addWorkout: (w) => {
+        const created = { ...w, id: 'w' + Date.now().toString(36) };
+        setWorkouts((cur) => [created, ...cur]);
+        return created;
+      },
+      deleteWorkout: (id) => {
+        setWorkouts((cur) => cur.filter((w) => w.id !== id));
+        setPosts((cur) => cur.filter((p) => p.workoutId !== id));
+      },
       setDemo,
       signOut: () => {
+        setWorkouts([]);
         setProfile(null);
         setPosts([]);
         setDemo(false);
         setDraft({});
       },
     }),
-    [ready, profile, posts, demo, draft],
+    [ready, profile, posts, demo, draft, workouts],
   );
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;

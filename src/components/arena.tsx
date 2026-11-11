@@ -6,6 +6,8 @@ import { Txt } from '@/components/Txt';
 import { Avatar, s } from '@/components/ui';
 import { creatorName, daysLeft, fmtGoal, goalTypes, medalPalettes, type Challenge, type MedalStyle } from '@/data/arena';
 import { useCommunity } from '@/data/CommunityStore';
+import { useProfile, type UserWorkout } from '@/data/ProfileStore';
+import { challengeProgress } from '@/data/progress';
 import { fonts } from '@/theme/fonts';
 import { rarityColors } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -34,19 +36,17 @@ export function Bar({ value, color, height = 8 }: { value: number; color?: strin
   );
 }
 
-// Você ainda não tem treinos gravados: seu progresso começa em 0 até o GPS entrar.
-export const MY_PROGRESS = 0;
-
-export function challengeState(c: Challenge, joinedChallenges: Record<string, boolean>) {
+export function challengeState(c: Challenge, joinedChallenges: Record<string, boolean>, workouts: UserWorkout[]) {
   const joined = c.creatorId === 'me' || !!joinedChallenges[c.id];
   const invited = c.invited.includes('me') && !joined;
   const people = Object.keys(c.progress).length + c.crowd + (joined ? 1 : 0);
-  return { joined, invited, people, left: daysLeft(c.end), mine: MY_PROGRESS };
+  return { joined, invited, people, left: daysLeft(c.end), mine: challengeProgress(c, workouts) };
 }
 
 export function useChallengeState(c: Challenge) {
   const { joinedChallenges } = useCommunity();
-  return challengeState(c, joinedChallenges);
+  const { workouts } = useProfile();
+  return challengeState(c, joinedChallenges, workouts);
 }
 
 /* Cartão de desafio para as listas da Arena. */

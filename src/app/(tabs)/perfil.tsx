@@ -14,13 +14,14 @@ import { medals, myPosts, workouts } from '@/data/profile';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fmtInt } from '@/utils/format';
+import { UserWorkoutRow } from '@/components/workout';
 
 const TABS = ['Conquistas', 'Treinos', 'Posts'] as const;
 type Tab = (typeof TABS)[number];
 
 export default function Perfil() {
   const { colors, isDark } = useTheme();
-  const { profile, posts, demo } = useProfile();
+  const { profile, posts, demo, workouts: myWorkouts } = useProfile();
   const [tab, setTab] = useState<Tab>('Conquistas');
 
   if (!profile) return <Redirect href="/boas-vindas" />;
@@ -28,7 +29,7 @@ export default function Perfil() {
   // Conta nova começa zerada; os dados de exemplo só aparecem se ligados nas Configurações.
   const stats = demo
     ? { followers: me.followers, following: me.following, workouts: me.workouts }
-    : { followers: 0, following: 0, workouts: 0 };
+    : { followers: 0, following: 0, workouts: myWorkouts.length };
   const shownMedals = demo ? medals : [];
   const shownWorkouts = demo ? workouts : [];
   const gridPosts = [
@@ -129,16 +130,20 @@ export default function Perfil() {
         ) : null}
 
         {tab === 'Treinos' ? (
-          shownWorkouts.length === 0 ? (
+          shownWorkouts.length === 0 && myWorkouts.length === 0 ? (
             <EmptyState
               icon="pin"
               title="Nenhum treino ainda"
-              text="Grave seu primeiro treino com o GPS ou conecte seu relógio. Ele aparece aqui com mapa e números."
+              text="Grave seu primeiro treino com o GPS ou lance um treino que você já fez. Ele aparece aqui com mapa e números."
               action="Registrar treino"
               onAction={() => router.push('/treino')}
             />
           ) : (
             <View style={{ gap: 8 }}>
+              <Button label="Registrar treino" variant="outline" size="md" icon="plus" onPress={() => router.push('/treino')} />
+              {myWorkouts.map((w) => (
+                <UserWorkoutRow key={w.id} w={w} onPress={() => router.push({ pathname: '/atividade/[id]', params: { id: w.id } })} />
+              ))}
               {shownWorkouts.map((w) => (
                 <WorkoutRow key={w.id} w={w} onPress={() => router.push({ pathname: '/atividade/[id]', params: { id: w.id } })} />
               ))}

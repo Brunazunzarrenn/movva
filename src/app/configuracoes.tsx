@@ -1,3 +1,4 @@
+import { TEST_BUILD } from '@/utils/version';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Switch, View } from 'react-native';
@@ -153,7 +154,7 @@ export default function Configuracoes() {
         {confirmOut ? (
           <View style={{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.danger, gap: 10 }}>
             <Txt variant="bodyStrong">Sair da conta?</Txt>
-            <Txt variant="caption" tone="muted">Nesta versão de teste a conta fica só neste aparelho. Ao sair, seu perfil e seus posts são apagados e você pode criar outro do zero.</Txt>
+            <Txt variant="caption" tone="muted">Nesta versão de teste a conta fica só neste aparelho. Ao sair, seu perfil, treinos e posts são apagados e você pode criar outro do zero.</Txt>
             <View style={[s.row, { gap: 8 }]}>
               <Pressable accessibilityRole="button" onPress={() => setConfirmOut(false)} style={{ flex: 1, minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
                 <Txt>Cancelar</Txt>
@@ -169,6 +170,10 @@ export default function Configuracoes() {
           </View>
         ) : null}
       </View>
+
+      <Txt variant="caption" tone="faint" style={{ textAlign: 'center' }}>
+        MOVVA · versão de teste{'\n'}{TEST_BUILD.stage} · {TEST_BUILD.date}
+      </Txt>
     </Screen>
   );
 }
