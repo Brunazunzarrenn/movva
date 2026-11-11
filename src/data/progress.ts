@@ -1,7 +1,8 @@
 // Calcula o seu progresso em desafios, duelos e rankings a partir dos treinos gravados.
 
 import { activitySpec } from '@/data/activity';
-import type { Challenge } from '@/data/arena';
+import { ANY_SPORT, sportGroups, type Challenge } from '@/data/arena';
+import { normalizeSport } from '@/data/sports';
 import type { DuelMetric } from '@/data/community';
 import { isVerified, type UserWorkout } from '@/data/ProfileStore';
 
@@ -13,7 +14,6 @@ function parts(w: UserWorkout): Part[] {
   return [{ sport: w.sport, km: w.km, sec: w.sec }];
 }
 
-const GROUP: Record<Challenge['sport'], string | null> = { Corrida: 'corrida', Pedal: 'pedal', Natação: 'natacao', 'Qualquer esporte': null };
 
 function inRange(w: UserWorkout, start: number, end: number) {
   const t = new Date(w.start).getTime();
@@ -23,10 +23,16 @@ function inRange(w: UserWorkout, start: number, end: number) {
 export function challengeProgress(c: Challenge, workouts: UserWorkout[]) {
   const s = new Date(c.start).getTime();
   const e = new Date(c.end).getTime();
-  const group = GROUP[c.sport];
-  const match = (p: Part) => group === null || activitySpec(p.sport).group === group;
+  const group = sportGroups[c.sport];
+  const any = c.sport === ANY_SPORT;
+  const multi = activitySpec(c.sport).kind === 'multi';
+  const same = (a: string, b: string) => normalizeSport(a) === normalizeSport(b);
+  const match = (p: Part) => any || (group ? activitySpec(p.sport).group === group : same(p.sport, c.sport));
   const list = workouts.filter((w) => isVerified(w) && inRange(w, s, e));
-  const matched = list.map((w) => ({ w, ps: parts(w).filter(match) })).filter((x) => x.ps.length);
+  // Desafio de triathlon conta o treino inteiro; nos outros, conta a parte do esporte (ex.: o pedal do triathlon).
+  const matched = list
+    .map((w) => ({ w, ps: multi ? (same(w.sport, c.sport) ? [{ sport: w.sport, km: w.km, sec: w.sec }] : []) : parts(w).filter(match) }))
+    .filter((x) => x.ps.length);
 
   switch (c.goal) {
     case 'dist':

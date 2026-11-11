@@ -2,6 +2,7 @@
 // territórios. Com o Supabase isso vira challenges, challenge_members,
 // segments, segment_efforts e territory_scores, calculados a partir dos treinos.
 
+import { activitySpec } from '@/data/activity';
 import { athletes, type Athlete } from '@/data/community';
 import type { Rarity } from '@/theme/colors';
 
@@ -17,8 +18,32 @@ export const goalTypes: { id: GoalType; label: string; unit: string; step: numbe
   { id: 'alt', label: 'Altimetria', unit: 'm', step: 500, def: 5000, help: 'Metros de subida acumulados.' },
 ];
 
-export const challengeSports = ['Corrida', 'Pedal', 'Natação', 'Qualquer esporte'] as const;
-export type ChallengeSport = (typeof challengeSports)[number];
+// Desafio pode ser de qualquer esporte da base. 'Corrida', 'Pedal' e 'Natação' são grupos
+// (valem todas as variações: corrida de rua, trail, estrada, MTB…) e 'Qualquer esporte' vale tudo.
+export const ANY_SPORT = 'Qualquer esporte';
+export const sportGroups: Record<string, 'corrida' | 'pedal' | 'natacao'> = { Corrida: 'corrida', Pedal: 'pedal', Natação: 'natacao' };
+export type ChallengeSport = string;
+
+// Metas que fazem sentido para cada esporte: musculação não tem distância,
+// natação em piscina não tem subida, corrida tem tudo.
+export function goalsFor(sport: string): GoalType[] {
+  if (sport === ANY_SPORT) return ['dias', 'treinos', 'tempo'];
+  if (sportGroups[sport]) return sport === 'Natação' ? ['dist', 'dias', 'treinos', 'tempo'] : ['dist', 'dias', 'treinos', 'tempo', 'alt'];
+  const sp = activitySpec(sport);
+  if (sp.kind === 'tempo') return ['dias', 'treinos', 'tempo'];
+  if (sp.kind === 'piscina' || sp.kind === 'multi' || sp.speed === 'pace100') return ['dist', 'dias', 'treinos', 'tempo'];
+  return sp.group === 'corrida' || sp.group === 'pedal' || sport === 'Montanhismo'
+    ? ['dist', 'dias', 'treinos', 'tempo', 'alt']
+    : ['dist', 'dias', 'treinos', 'tempo'];
+}
+
+// Meta inicial sugerida conforme o esporte.
+export function defaultTarget(sport: string, goal: GoalType) {
+  const g = goalTypes.find((x) => x.id === goal)!;
+  if (goal !== 'dist') return g.def;
+  const sp = sportGroups[sport] ?? activitySpec(sport).group;
+  return sp === 'pedal' ? 300 : sp === 'natacao' ? 10 : g.def;
+}
 
 export type MedalStyle = { mark: string; rarity: Rarity; palette?: number }; // palette = medalha personalizada (Pro)
 
@@ -99,7 +124,9 @@ export function seedChallenges(now = new Date()): Challenge[] {
 export const creatorName = (id: string) => (id === 'movva' ? 'MOVVA' : id === 'me' ? 'Você' : athletes.find((a) => a.id === id)?.name ?? 'Atleta');
 
 export function fmtGoal(v: number, goal: GoalType) {
-  const unit = goalTypes.find((g) => g.id === goal)?.unit ?? '';
+  let unit = goalTypes.find((g) => g.id === goal)?.unit ?? '';
+  if (v === 1 && unit === 'treinos') unit = 'treino';
+  if (v === 1 && unit === 'dias') unit = 'dia';
   const n = goal === 'alt' ? Math.round(v).toLocaleString('pt-BR') : String(Math.round(v * 10) / 10).replace('.', ',');
   return `${n} ${unit}`;
 }

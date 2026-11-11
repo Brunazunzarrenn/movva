@@ -7,10 +7,14 @@ import { Icon } from '@/components/Icon';
 import { TextField } from '@/components/TextField';
 import { Txt } from '@/components/Txt';
 import { Avatar, Button, Chip, Header, Screen, Segmented, s } from '@/components/ui';
-import { challengeSports, fmtGoal, goalTypes, medalPalettes, type ChallengeSport, type GoalType } from '@/data/arena';
+import { ANY_SPORT, defaultTarget, fmtGoal, goalsFor, goalTypes, medalPalettes, sportGroups, type GoalType } from '@/data/arena';
+import { trainingOptions } from '@/data/activity';
+import { normalizeSport } from '@/data/sports';
+import { useSports } from '@/data/SportsStore';
+import { useProfileSports } from '@/components/profileParts';
 import { athletes } from '@/data/community';
 import { useCommunity } from '@/data/CommunityStore';
-import { initialsOf } from '@/data/ProfileStore';
+import { initialsOf, useProfile } from '@/data/ProfileStore';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -21,7 +25,11 @@ export default function NovoDesafio() {
   const { colors } = useTheme();
   const { createChallenge } = useCommunity();
   const [title, setTitle] = useState('');
-  const [sport, setSport] = useState<ChallengeSport>('Corrida');
+  const { profile } = useProfile();
+  const { categories } = useSports();
+  const mine = useProfileSports(profile?.sports ?? [], profile?.pendingSports ?? []).official;
+  const [sport, setSport] = useState('Corrida');
+  const [query, setQuery] = useState('');
   const [goal, setGoal] = useState<GoalType>('dist');
   const [target, setTarget] = useState(goalTypes[0].def);
   const [days, setDays] = useState<(typeof DURATIONS)[number]>(30);
@@ -36,8 +44,22 @@ export default function NovoDesafio() {
   const medalMark = mark.trim() || String(target).slice(0, 3);
   const pickGoal = (id: GoalType) => {
     setGoal(id);
-    setTarget(goalTypes.find((x) => x.id === id)!.def);
+    setTarget(defaultTarget(sport, id));
   };
+  // Trocar o esporte mostra só as metas que fazem sentido (musculação não tem distância).
+  const allowed = goalsFor(sport);
+  const pickSport = (sp: string) => {
+    setSport(sp);
+    setQuery('');
+    const ok = goalsFor(sp);
+    const next = ok.includes(goal) ? goal : ok[0];
+    setGoal(next);
+    setTarget(defaultTarget(sp, next));
+  };
+  const quick = [ANY_SPORT, ...Object.keys(sportGroups), ...trainingOptions(mine)].filter((x, i, a) => a.indexOf(x) === i);
+  if (!quick.includes(sport)) quick.push(sport);
+  const q = normalizeSport(query);
+  const results = q.length >= 2 ? categories.flatMap((c) => c.sports).filter((x) => normalizeSport(x).includes(q)).slice(0, 12) : [];
 
   const create = () => {
     setTried(true);
@@ -52,7 +74,7 @@ export default function NovoDesafio() {
       start: start.toISOString(),
       end: end.toISOString(),
       visibility: vis,
-      description: `${fmtGoal(target, goal)} de ${sport.toLowerCase()} em ${days} dias.`,
+      description: sport === ANY_SPORT ? `${fmtGoal(target, goal)} em ${days} dias, em qualquer esporte.` : `${fmtGoal(target, goal)} de ${sport.toLowerCase()} em ${days} dias.`,
       medal: { mark: medalMark, rarity: 'rara', palette },
       invited,
     });
@@ -68,14 +90,25 @@ export default function NovoDesafio() {
       <View style={{ gap: 8 }}>
         <Txt variant="bodyStrong">Esporte</Txt>
         <View style={s.wrap}>
-          {challengeSports.map((sp) => <Chip key={sp} label={sp} selected={sp === sport} onPress={() => setSport(sp)} />)}
+          {quick.map((sp) => <Chip key={sp} label={sp} selected={sp === sport} onPress={() => pickSport(sp)} />)}
         </View>
+        <TextField label="Buscar outro esporte" value={query} onChangeText={setQuery} placeholder="Ex.: musculação, jiu-jítsu, beach tennis" autoCorrect={false} />
+        {results.length ? (
+          <View style={s.wrap}>
+            {results.map((sp) => <Chip key={sp} label={sp} selected={sp === sport} onPress={() => pickSport(sp)} />)}
+          </View>
+        ) : q.length >= 2 ? (
+          <Txt variant="caption" tone="muted">Nenhum esporte encontrado. Se faltar algum, sugira em Editar perfil → Esportes → Outro.</Txt>
+        ) : null}
+        <Txt variant="caption" tone="muted">
+          {sport === ANY_SPORT ? 'Vale treino de qualquer esporte.' : sportGroups[sport] ? `Vale qualquer tipo de ${sport.toLowerCase()} (rua, trilha, estrada, MTB…).` : `Só treinos de ${sport} contam.`}
+        </Txt>
       </View>
 
       <View style={{ gap: 8 }}>
         <Txt variant="bodyStrong">Tipo de meta</Txt>
         <View accessibilityRole="radiogroup" style={s.wrap}>
-          {goalTypes.map((x) => <Chip key={x.id} label={x.label} selected={x.id === goal} onPress={() => pickGoal(x.id)} />)}
+          {goalTypes.filter((x) => allowed.includes(x.id)).map((x) => <Chip key={x.id} label={x.label} selected={x.id === goal} onPress={() => pickGoal(x.id)} />)}
         </View>
         <Txt variant="caption" tone="muted">{g.help}</Txt>
       </View>

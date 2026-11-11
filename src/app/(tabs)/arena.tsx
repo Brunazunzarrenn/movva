@@ -98,7 +98,7 @@ function Featured({ c }: { c: Challenge }) {
         <View style={{ flex: 1, gap: 2 }}>
           <Txt variant="eyebrow" tone="accent">{st.joined ? 'Em andamento' : 'Desafio do mês'} · {c.sport}</Txt>
           <Txt style={{ fontFamily: fonts.display, fontSize: 22, color: colors.text }}>{c.title}</Txt>
-          <Txt variant="caption" tone="muted">{st.left} dias restantes · {st.people.toLocaleString('pt-BR')} participantes</Txt>
+          <Txt variant="caption" tone="muted">{st.left} dias restantes · {st.people.toLocaleString('pt-BR')} {st.people === 1 ? 'participante' : 'participantes'}</Txt>
         </View>
       </View>
       {st.joined ? (
