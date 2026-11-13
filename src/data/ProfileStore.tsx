@@ -89,8 +89,8 @@ type Store = {
   email: string | null;
   isAdmin: boolean;
   syncError: string | null;
-  sendCode: (email: string) => Promise<string | null>; // devolve a mensagem de erro, se houver
-  verifyCode: (email: string, code: string) => Promise<string | null>;
+  signUpEmail: (email: string, password: string) => Promise<string | null>; // devolve a mensagem de erro, se houver
+  signInEmail: (email: string, password: string) => Promise<string | null>;
 };
 
 const KEY = 'movva.perfil.v1';
@@ -246,18 +246,31 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       email,
       isAdmin,
       syncError,
-      sendCode: async (mail) => {
+      // E-mail e senha. Devolve a mensagem de erro (ou null quando deu certo).
+      signUpEmail: async (mail, password) => {
         if (!supabase) return 'Login ainda não configurado.';
-        const { error } = await supabase.auth.signInWithOtp({ email: mail.trim().toLowerCase(), options: { shouldCreateUser: true } });
-        if (!error) return null;
-        if (error.status === 429) return 'Muitas tentativas. Espere alguns minutos e peça outro código.';
-        if (/fetch|network/i.test(error.message)) return 'Sem conexão com o servidor. Confira a internet e tente de novo.';
-        return 'Não foi possível enviar o código. Tente de novo em instantes.';
+        const { data, error } = await supabase.auth.signUp({ email: mail.trim().toLowerCase(), password });
+        if (error) return authError(error);
+        if (!data.session || !data.user) {
+          // Projeto com confirmação de e-mail ligada: tenta entrar (funciona se já foi confirmada).
+          const again = await supabase.auth.signInWithPassword({ email: mail.trim().toLowerCase(), password });
+          if (again.error || !again.data.user) {
+            return 'Conta criada! Abra o e-mail que o Supabase mandou, toque em confirmar e depois entre em "Já tenho conta".';
+          }
+          setUserId(again.data.user.id);
+          setEmail(again.data.user.email ?? null);
+          setProfile(null);
+          return null;
+        }
+        setUserId(data.user.id);
+        setEmail(data.user.email ?? null);
+        setProfile(null);
+        return null;
       },
-      verifyCode: async (mail, code) => {
+      signInEmail: async (mail, password) => {
         if (!supabase) return 'Login ainda não configurado.';
-        const { data, error } = await supabase.auth.verifyOtp({ email: mail.trim().toLowerCase(), token: code, type: 'email' });
-        if (error || !data.user) return 'Código errado ou vencido. Confira o e-mail ou peça outro.';
+        const { data, error } = await supabase.auth.signInWithPassword({ email: mail.trim().toLowerCase(), password });
+        if (error || !data.user) return authError(error);
         setUserId(data.user.id);
         setEmail(data.user.email ?? null);
         await loadAccount(data.user.id);
@@ -279,6 +292,19 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   );
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
+}
+
+// Traduz os erros de login do Supabase.
+function authError(e: { message?: string; status?: number; code?: string } | null): string {
+  const m = (e?.message ?? '').toLowerCase();
+  const code = e?.code ?? '';
+  if (code === 'invalid_credentials' || m.includes('invalid login')) return 'E-mail ou senha errados.';
+  if (code === 'user_already_exists' || m.includes('already registered')) return 'Já existe conta com esse e-mail. Toque em "Já tenho conta".';
+  if (code === 'weak_password' || m.includes('password should')) return 'Senha fraca. Use pelo menos 8 caracteres, misturando letras e números.';
+  if (code === 'email_not_confirmed') return 'Confirme seu e-mail pelo link que enviamos antes de entrar.';
+  if (code === 'over_request_rate_limit' || e?.status === 429) return 'Muitas tentativas. Espere alguns minutos.';
+  if (m.includes('fetch') || m.includes('network')) return 'Sem conexão com o servidor. Confira a internet e tente de novo.';
+  return 'Não foi possível entrar agora. Tente de novo.';
 }
 
 export function useProfile() {
