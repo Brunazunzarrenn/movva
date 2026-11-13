@@ -15,8 +15,6 @@ const THEME_LABEL = { Escuro: 'escuro', Claro: 'claro', Auto: 'auto' } as const;
 type ThemeLabel = keyof typeof THEME_LABEL;
 const LABEL_OF: Record<ThemePreference, ThemeLabel> = { escuro: 'Escuro', claro: 'Claro', auto: 'Auto' };
 
-// Enquanto não temos login real, toda conta de teste enxerga a área de administração.
-const TEST_ADMIN = true;
 
 const PRIVACY = [
   { id: 'priv', label: 'Perfil privado', help: 'Só seguidores aprovados veem seus posts.' },
@@ -29,7 +27,7 @@ export default function Configuracoes() {
   const { colors, preference, setPreference } = useTheme();
   const { suggestions } = useSports();
   const pending = suggestions.filter((x) => x.status === 'pendente').length;
-  const { profile, demo, setDemo, signOut } = useProfile();
+  const { profile, demo, setDemo, signOut, online, isAdmin, email, syncError } = useProfile();
   const age = profile ? ageFrom(profile.birthDate) : null;
   const [confirmOut, setConfirmOut] = useState(false);
   const [sw, setSw] = useState<Record<string, boolean>>({ priv: false, zone: true, invites: true, terr: true });
@@ -59,6 +57,14 @@ export default function Configuracoes() {
           <Icon name="chevron" size={18} color={colors.textMuted} />
         </Pressable>
       ) : null}
+
+      {online ? (
+        <Txt variant="caption" tone={syncError ? 'danger' : 'muted'}>
+          {syncError ? `Não sincronizou: ${syncError}` : `Conta salva na nuvem${email ? ` · ${email}` : ''}`}
+        </Txt>
+      ) : (
+        <Txt variant="caption" tone="muted">Modo de teste: a conta fica só neste aparelho.</Txt>
+      )}
 
       {age !== null && age < 18 ? (
         <View style={{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 4 }}>
@@ -107,7 +113,7 @@ export default function Configuracoes() {
         </View>
       </View>
 
-      {TEST_ADMIN ? (
+      {!online || isAdmin ? (
         <View style={{ gap: 8 }}>
           <Txt variant="eyebrow" tone="muted">Administração</Txt>
           <Pressable
@@ -154,7 +160,7 @@ export default function Configuracoes() {
         {confirmOut ? (
           <View style={{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.danger, gap: 10 }}>
             <Txt variant="bodyStrong">Sair da conta?</Txt>
-            <Txt variant="caption" tone="muted">Nesta versão de teste a conta fica só neste aparelho. Ao sair, seu perfil, treinos e posts são apagados e você pode criar outro do zero.</Txt>
+            <Txt variant="caption" tone="muted">{online ? 'Você sai deste aparelho. Seu perfil, treinos e posts continuam salvos na nuvem: é só entrar de novo com o mesmo e-mail.' : 'Nesta versão de teste a conta fica só neste aparelho. Ao sair, seu perfil, treinos e posts são apagados e você pode criar outro do zero.'}</Txt>
             <View style={[s.row, { gap: 8 }]}>
               <Pressable accessibilityRole="button" onPress={() => setConfirmOut(false)} style={{ flex: 1, minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
                 <Txt>Cancelar</Txt>
@@ -164,7 +170,7 @@ export default function Configuracoes() {
                 onPress={() => { signOut(); router.replace('/boas-vindas'); }}
                 style={{ flex: 1, minHeight: 44, borderRadius: 12, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' }}
               >
-                <Txt style={{ fontFamily: fonts.bodySemi, color: '#FFFFFF' }}>Sair e apagar</Txt>
+                <Txt style={{ fontFamily: fonts.bodySemi, color: '#FFFFFF' }}>{online ? 'Sair' : 'Sair e apagar'}</Txt>
               </Pressable>
             </View>
           </View>

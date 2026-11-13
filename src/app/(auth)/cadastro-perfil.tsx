@@ -16,22 +16,33 @@ export default function CadastroPerfil() {
   const [region, setRegion] = useState(draft.region ?? '');
   const [birth, setBirth] = useState(draft.birthDate ?? '');
   const [tried, setTried] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
 
   const levelErr = level ? null : 'Escolha seu nível.';
   const regionErr = region.trim().length < 3 ? 'Digite sua cidade ou bairro.' : null;
   const birthErr = birthDateError(birth, !tried);
   const age = birthDateError(birth, false) ? null : ageFrom(birth);
 
-  const finish = () => {
+  const finish = async () => {
     setTried(true);
+    setSaveErr(null);
     if (levelErr || regionErr || birthDateError(birth, false)) return;
-    const p = completeSignup({ level, region: region.trim(), birthDate: birth });
-    if (p) router.replace('/(tabs)/feed');
-    else router.replace('/cadastro-nome'); // faltou algum passo anterior
+    setSaving(true);
+    const res = await completeSignup({ level, region: region.trim(), birthDate: birth });
+    setSaving(false);
+    if (res.profile) router.replace('/(tabs)/feed');
+    else if (res.error === 'Faltou algum passo do cadastro.') router.replace('/cadastro-nome');
+    else setSaveErr(res.error ?? 'Não foi possível criar o perfil.');
   };
 
   return (
-    <Screen footer={<Button label="Concluir cadastro" onPress={finish} />}>
+    <Screen footer={
+      <View style={{ gap: 8 }}>
+        {saveErr ? <Txt variant="small" tone="danger" style={{ textAlign: 'center' }}>{saveErr}</Txt> : null}
+        <Button label={saving ? 'Criando perfil…' : 'Concluir cadastro'} disabled={saving} onPress={finish} />
+      </View>
+    }>
       <View style={[s.row, { gap: 12 }]}>
         <IconButton icon="back" label="Voltar" onPress={() => router.back()} style={{ marginLeft: -12 }} />
         <Progress step={3} total={3} />

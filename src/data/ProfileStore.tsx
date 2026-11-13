@@ -2,6 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import type { ActivityKind } from '@/data/activity';
+import {
+  deleteWorkoutRemote, fetchMyPosts, fetchMyProfile, fetchMyWorkouts, insertPost, insertWorkout, saveProfile,
+} from '@/lib/remote';
+import { isOnline, supabase, uuid } from '@/lib/supabase';
 import { avatarColors } from '@/theme/colors';
 
 // Perfil do usuário criado no cadastro e os posts que ele publica.
@@ -70,7 +74,8 @@ type Store = {
   demo: boolean; // mostra dados de exemplo (medalhas, treinos, evolução)
   draft: SignupDraft;
   updateDraft: (patch: SignupDraft) => void;
-  completeSignup: (last: SignupDraft) => Profile | null; // junta o último passo ao rascunho e cria o perfil
+  // junta o último passo ao rascunho e cria o perfil (no banco, quando online)
+  completeSignup: (last: SignupDraft) => Promise<{ profile?: Profile; error?: string }>;
   updateProfile: (patch: Partial<Profile>) => void;
   addPost: (p: Omit<UserPost, 'id' | 'createdAt'>) => void;
   workouts: UserWorkout[];
@@ -78,6 +83,14 @@ type Store = {
   deleteWorkout: (id: string) => void;
   setDemo: (v: boolean) => void;
   signOut: () => void;
+  // Conta de verdade (Supabase). Sem as chaves, online = false e tudo fica só no aparelho.
+  online: boolean;
+  userId: string | null;
+  email: string | null;
+  isAdmin: boolean;
+  syncError: string | null;
+  sendCode: (email: string) => Promise<string | null>; // devolve a mensagem de erro, se houver
+  verifyCode: (email: string, code: string) => Promise<string | null>;
 };
 
 const KEY = 'movva.perfil.v1';
@@ -93,6 +106,31 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [demo, setDemo] = useState(false);
   const [workouts, setWorkouts] = useState<UserWorkout[]>([]);
   const [draft, setDraft] = useState<SignupDraft>({});
+  const [userId, setUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const fail = (e: unknown) => setSyncError(e instanceof Error ? e.message : 'Não foi possível salvar no servidor.');
+
+  // Carrega a conta do banco (perfil, treinos e posts). Se a internet falhar, fica o que estava salvo no aparelho.
+  const loadAccount = async (uid: string) => {
+    try {
+      const [p, ws, ps] = await Promise.all([fetchMyProfile(uid), fetchMyWorkouts(uid), fetchMyPosts(uid)]);
+      if (p) {
+        const { isAdmin: admin, ...rest } = p;
+        setProfile(rest);
+        setIsAdmin(admin);
+      } else {
+        setProfile(null);
+      }
+      setWorkouts(ws);
+      setPosts(ps);
+      setSyncError(null);
+    } catch (e) {
+      fail(e);
+    }
+  };
 
   useEffect(() => {
     AsyncStorage.getItem(KEY)
@@ -105,7 +143,26 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setWorkouts(s.workouts ?? []);
       })
       .catch(() => {})
+      .then(async () => {
+        if (!supabase) return;
+        const { data } = await supabase.auth.getSession();
+        const u = data.session?.user;
+        if (u) {
+          setUserId(u.id);
+          setEmail(u.email ?? null);
+          await loadAccount(u.id);
+        } else {
+          setProfile(null); // sem sessão não há conta, mesmo que algo antigo tenha ficado salvo
+        }
+      })
       .finally(() => setReady(true));
+    if (!supabase) return;
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') { setUserId(null); setEmail(null); setIsAdmin(false); }
+      if (event === 'SIGNED_IN' && session?.user) { setUserId(session.user.id); setEmail(session.user.email ?? null); }
+    });
+    return () => sub.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -122,9 +179,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       demo,
       draft,
       updateDraft: (patch) => setDraft((d) => ({ ...d, ...patch })),
-      completeSignup: (last) => {
+      completeSignup: async (last) => {
         const d = { ...draft, ...last };
-        if (!d.name || !d.username || !d.level || !d.region || !d.birthDate) return null;
+        if (!d.name || !d.username || !d.level || !d.region || !d.birthDate) return { error: 'Faltou algum passo do cadastro.' };
         const p: Profile = {
           name: d.name.trim(),
           username: d.username,
@@ -137,26 +194,79 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           birthDate: d.birthDate,
           createdAt: new Date().toISOString(),
         };
+        if (isOnline) {
+          if (!userId) return { error: 'Entre com seu e-mail antes de criar o perfil.' };
+          try {
+            const photo = await saveProfile(userId, p, true);
+            p.photoUri = photo;
+          } catch (e) {
+            return { error: e instanceof Error ? e.message : 'Não foi possível criar o perfil.' };
+          }
+        }
         setProfile(p);
         setPosts([]);
         setWorkouts([]);
         setDraft({});
-        return p;
+        return { profile: p };
       },
-      updateProfile: (patch) => setProfile((p) => (p ? { ...p, ...patch } : p)),
-      addPost: (p) => setPosts((cur) => [{ ...p, id: 'u' + Date.now(), createdAt: new Date().toISOString() }, ...cur]),
+      updateProfile: (patch) => {
+        if (!profile) return;
+        const next = { ...profile, ...patch };
+        setProfile(next);
+        if (isOnline && userId) {
+          saveProfile(userId, next, false)
+            .then((photo) => { if (photo !== next.photoUri) setProfile((cur) => (cur ? { ...cur, photoUri: photo } : cur)); setSyncError(null); })
+            .catch(fail);
+        }
+      },
+      addPost: (p) => {
+        const created: UserPost = { ...p, id: uuid(), createdAt: new Date().toISOString() };
+        setPosts((cur) => [created, ...cur]);
+        if (isOnline && userId) {
+          insertPost(userId, created)
+            .then((urls) => setPosts((cur) => cur.map((x) => (x.id === created.id ? { ...x, photoUris: urls } : x))))
+            .catch(fail);
+        }
+      },
       workouts,
       addWorkout: (w) => {
-        const created = { ...w, id: 'w' + Date.now().toString(36) };
+        const created = { ...w, id: uuid() };
         setWorkouts((cur) => [created, ...cur]);
+        if (isOnline && userId) insertWorkout(created).catch(fail);
         return created;
       },
       deleteWorkout: (id) => {
         setWorkouts((cur) => cur.filter((w) => w.id !== id));
         setPosts((cur) => cur.filter((p) => p.workoutId !== id));
+        if (isOnline && userId) deleteWorkoutRemote(id).catch(fail);
       },
       setDemo,
+      online: isOnline,
+      userId,
+      email,
+      isAdmin,
+      syncError,
+      sendCode: async (mail) => {
+        if (!supabase) return 'Login ainda não configurado.';
+        const { error } = await supabase.auth.signInWithOtp({ email: mail.trim().toLowerCase(), options: { shouldCreateUser: true } });
+        if (!error) return null;
+        if (error.status === 429) return 'Muitas tentativas. Espere alguns minutos e peça outro código.';
+        if (/fetch|network/i.test(error.message)) return 'Sem conexão com o servidor. Confira a internet e tente de novo.';
+        return 'Não foi possível enviar o código. Tente de novo em instantes.';
+      },
+      verifyCode: async (mail, code) => {
+        if (!supabase) return 'Login ainda não configurado.';
+        const { data, error } = await supabase.auth.verifyOtp({ email: mail.trim().toLowerCase(), token: code, type: 'email' });
+        if (error || !data.user) return 'Código errado ou vencido. Confira o e-mail ou peça outro.';
+        setUserId(data.user.id);
+        setEmail(data.user.email ?? null);
+        await loadAccount(data.user.id);
+        return null;
+      },
       signOut: () => {
+        supabase?.auth.signOut().catch(() => {});
+        setUserId(null);
+        setIsAdmin(false);
         setWorkouts([]);
         setProfile(null);
         setPosts([]);
@@ -164,7 +274,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setDraft({});
       },
     }),
-    [ready, profile, posts, demo, draft, workouts],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ready, profile, posts, demo, draft, workouts, userId, email, isAdmin, syncError],
   );
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;

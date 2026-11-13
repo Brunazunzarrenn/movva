@@ -1,4 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { suggestSportRemote } from '@/lib/remote';
+import { isOnline } from '@/lib/supabase';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { normalizeSport, sportCategories, tidySportName, type SportCategory } from './sports';
@@ -101,6 +104,8 @@ export function SportsProvider({ children }: { children: ReactNode }) {
           if (same) return cur.map((s) => (s === same ? { ...s, count: s.count + 1 } : s));
           return [{ id: 's' + Date.now(), name, count: 1, firstAt: today(), status: 'pendente' }, ...cur];
         });
+        // Com o banco ligado, a sugestão também vai para o servidor (o admin vê de todo mundo).
+        if (isOnline) suggestSportRemote(name).catch(() => {});
         return { kind: 'sugerido', name };
       },
       approve: (id, categoryId) => update(id, { status: 'aprovado', categoryId, mergedInto: undefined }),

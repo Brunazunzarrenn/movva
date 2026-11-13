@@ -8,11 +8,12 @@ import { TextField } from '@/components/TextField';
 import { Txt } from '@/components/Txt';
 import { Button, IconButton, Screen, s } from '@/components/ui';
 import { colorOf, initialsOf, suggestUsername, useProfile, usernameError } from '@/data/ProfileStore';
+import { isUsernameFree } from '@/lib/remote';
 import { useTheme } from '@/theme/ThemeProvider';
 
 export default function CadastroNome() {
   const { colors } = useTheme();
-  const { draft, updateDraft } = useProfile();
+  const { draft, updateDraft, online, userId } = useProfile();
   const [name, setName] = useState(draft.name ?? '');
   const [username, setUsername] = useState(draft.username ?? '');
   const [userTouched, setUserTouched] = useState(!!draft.username);
@@ -33,15 +34,26 @@ export default function CadastroNome() {
   const userErr = usernameError(username);
   const valid = !nameErr && !userErr;
 
-  const next = () => {
+  const [checking, setChecking] = useState(false);
+  const [takenErr, setTakenErr] = useState<string | null>(null);
+
+  const next = async () => {
     setTried(true);
+    setTakenErr(null);
     if (!valid) return;
+    // Com conta de verdade, confere no banco se o @ está livre.
+    if (online) {
+      setChecking(true);
+      const free = await isUsernameFree(username, userId ?? undefined).catch(() => true);
+      setChecking(false);
+      if (!free) { setTakenErr('Esse nome de usuário já está em uso.'); return; }
+    }
     updateDraft({ name: name.trim(), username, photoUri });
     router.push('/cadastro-esportes');
   };
 
   return (
-    <Screen footer={<Button label="Continuar" onPress={next} />}>
+    <Screen footer={<Button label={checking ? 'Conferindo…' : 'Continuar'} disabled={checking} onPress={next} />}>
       <View style={[s.row, { gap: 12 }]}>
         <IconButton icon="back" label="Voltar" onPress={() => router.back()} style={{ marginLeft: -12 }} />
         <Progress step={1} total={3} />
@@ -71,7 +83,7 @@ export default function CadastroNome() {
         autoCorrect={false}
         maxLength={24}
         prefix={<Txt style={{ color: colors.textMuted, fontSize: 16 }}>@</Txt>}
-        error={(tried || userTouched) && username.length > 0 ? userErr : tried ? userErr : null}
+        error={takenErr ?? ((tried || userTouched) && username.length > 0 ? userErr : tried ? userErr : null)}
         help="Letras minúsculas, números, ponto e _. Dá para mudar depois."
       />
     </Screen>

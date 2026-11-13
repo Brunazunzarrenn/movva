@@ -1,3 +1,4 @@
+import { useProfile } from '@/data/ProfileStore';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { View } from 'react-native';
@@ -10,7 +11,10 @@ import { useTheme } from '@/theme/ThemeProvider';
 export default function BoasVindas() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const start = () => router.push('/cadastro-nome');
+  const { online } = useProfile();
+  // Com o banco ligado, o e-mail entra com código; Apple e Google vêm na próxima etapa.
+  const start = () => router.push(online ? '/entrar' : '/cadastro-nome');
+  const social = () => (online ? router.push('/em-breve') : start());
 
   return (
     <LinearGradient
@@ -31,8 +35,8 @@ export default function BoasVindas() {
         <Txt tone="muted" style={{ marginBottom: 6 }}>
           Treine, compartilhe, dispute desafios e colecione suas conquistas em qualquer esporte.
         </Txt>
-        <Button label="Continuar com a Apple" variant="inverse" onPress={start} />
-        <Button label="Continuar com o Google" variant="secondary" onPress={start} />
+        <Button label="Continuar com a Apple" variant="inverse" onPress={social} />
+        <Button label="Continuar com o Google" variant="secondary" onPress={social} />
         <Button label="Entrar com e-mail" variant="ghost" onPress={start} />
         <Txt variant="caption" tone="faint" style={{ textAlign: 'center' }}>
           Ao continuar, você aceita os Termos de Uso e a Política de Privacidade.

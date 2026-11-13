@@ -62,3 +62,18 @@ npx expo start -c    # inicia limpando o cache
 - [x] Treino: GPS (corrida, pedal, águas abertas), piscina por voltas, só cronômetro (jiu-jítsu, musculação, vôlei…), multiesporte com transições (triathlon) e lançamento manual; treinos contam em desafios, duelos e rankings
 - [ ] Login real e banco de dados (Supabase)
 - [ ] Assinaturas (MOVVA Pro) e publicação nas lojas
+
+## Ligar o banco de dados (Supabase)
+
+Sem isso o app funciona no **modo de teste local** (conta só no aparelho). Para contas de verdade:
+
+1. Crie um projeto grátis em supabase.com (região São Paulo).
+2. **SQL Editor → New query**: cole todo o arquivo `supabase/schema.sql` e clique em **Run**. Ele cria as tabelas, as regras de acesso (RLS) e o espaço das fotos. Pode rodar de novo sem problema.
+3. **Authentication → Emails → Magic Link**: no texto do e-mail, coloque o código, por exemplo:
+   `<h2>Seu código do MOVVA: {{ .Token }}</h2>`
+4. **Project Settings → API**: copie a **Project URL** e a chave **anon / public**. Crie o arquivo `.env` (igual ao `.env.example`) com elas. **Nunca** use a chave `service_role` no app.
+5. Rode `npx expo start -c`. Em Configurações deve aparecer "Conta salva na nuvem".
+6. Para virar admin (ver os esportes sugeridos): no SQL Editor rode
+   `update public.profiles set is_admin = true where username = 'seu_usuario';`
+
+O e-mail grátis do Supabase manda poucos e-mails por hora (bom para teste). Para lançar, configure um SMTP próprio (ex.: Resend) em Authentication → SMTP.
