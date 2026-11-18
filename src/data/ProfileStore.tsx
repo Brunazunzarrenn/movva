@@ -197,8 +197,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         if (isOnline) {
           if (!userId) return { error: 'Entre com seu e-mail antes de criar o perfil.' };
           try {
-            const photo = await saveProfile(userId, p, true);
-            p.photoUri = photo;
+            const res = await saveProfile(userId, p, true);
+            p.photoUri = res.photo;
+            setSyncError(res.photoError);
           } catch (e) {
             return { error: e instanceof Error ? e.message : 'Não foi possível criar o perfil.' };
           }
@@ -215,7 +216,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setProfile(next);
         if (isOnline && userId) {
           saveProfile(userId, next, false)
-            .then((photo) => { if (photo !== next.photoUri) setProfile((cur) => (cur ? { ...cur, photoUri: photo } : cur)); setSyncError(null); })
+            .then(({ photo, photoError }) => {
+              if (photo !== next.photoUri) setProfile((cur) => (cur ? { ...cur, photoUri: photo } : cur));
+              setSyncError(photoError);
+            })
             .catch(fail);
         }
       },

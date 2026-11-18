@@ -389,3 +389,6 @@ create policy "fotos: enviar na sua pasta" on storage.objects for insert to auth
 drop policy if exists "fotos: apagar as suas" on storage.objects;
 create policy "fotos: apagar as suas" on storage.objects for delete to authenticated
   using (bucket_id = 'fotos' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "fotos: ver as suas" on storage.objects;
+create policy "fotos: ver as suas" on storage.objects for select to authenticated
+  using (bucket_id = 'fotos' and (storage.foldername(name))[1] = auth.uid()::text);

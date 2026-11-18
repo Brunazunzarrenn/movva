@@ -36,13 +36,21 @@ export async function isUsernameFree(username: string, myId?: string) {
   return !data || data.id === myId;
 }
 
+// Salva o perfil. Se a foto não subir, o perfil salva assim mesmo e devolvemos o motivo.
 export async function saveProfile(userId: string, p: Profile, isNew: boolean) {
   let photo = p.photoUri;
+  let photoError: string | null = null;
   if (photo && !/^https?:\/\//.test(photo)) {
-    try { photo = await uploadPhoto(photo, userId, 'avatar'); } catch { photo = undefined; }
+    try {
+      photo = await uploadPhoto(photo, userId, 'avatar');
+    } catch (e) {
+      photoError = `A foto não foi enviada (${e instanceof Error ? e.message : 'erro desconhecido'}). Tente escolher de novo em Editar perfil.`;
+    }
   }
+  const remotePhoto = photo && /^https?:\/\//.test(photo) ? photo : null;
   const row = {
-    id: userId, name: p.name, username: p.username, photo_url: photo ?? null, bio: p.bio ?? null,
+    id: userId, name: p.name, username: p.username, bio: p.bio ?? null,
+    ...(remotePhoto || isNew || !photo ? { photo_url: remotePhoto } : {}),
     sports: p.sports, pending_sports: p.pendingSports, level: p.level, region: p.region,
   };
   const { error } = isNew ? await db().from('profiles').insert(row) : await db().from('profiles').update(row).eq('id', userId);
@@ -54,7 +62,7 @@ export async function saveProfile(userId: string, p: Profile, isNew: boolean) {
     const { error: e2 } = await db().from('profile_private').upsert({ id: userId, birth_date: toIsoDate(p.birthDate) });
     if (e2) throw e2;
   }
-  return photo;
+  return { photo, photoError };
 }
 
 type WorkoutRow = {

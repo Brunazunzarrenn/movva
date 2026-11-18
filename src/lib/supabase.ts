@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
 
 // As chaves ficam no arquivo .env (veja .env.example). A chave "anon" é pública:
@@ -30,14 +31,27 @@ export function uuid() {
   });
 }
 
+// Lê os bytes da foto escolhida. No celular a foto é um arquivo local (file://),
+// que precisa do expo-file-system; no navegador é um blob/data que o fetch lê.
+async function readPhoto(uri: string): Promise<{ buf: ArrayBuffer; type: string }> {
+  const guess = /\.png($|\?)/i.test(uri) ? 'image/png' : /\.webp($|\?)/i.test(uri) ? 'image/webp' : 'image/jpeg';
+  if (Platform.OS !== 'web' && uri.startsWith('file:')) {
+    const f = new File(uri);
+    return { buf: await f.arrayBuffer(), type: f.type || guess };
+  }
+  const res = await fetch(uri);
+  return { buf: await res.arrayBuffer(), type: res.headers.get('content-type') || guess };
+}
+
 // Envia uma foto do aparelho para o Storage (pasta do usuário) e devolve o endereço público.
 export async function uploadPhoto(localUri: string, userId: string, name: string) {
   if (!supabase || /^https?:\/\//.test(localUri)) return localUri;
-  const res = await fetch(localUri);
-  const buf = await res.arrayBuffer();
-  const type = res.headers.get('content-type') ?? 'image/jpeg';
-  const path = `${userId}/${name}-${Date.now()}.${type.includes('png') ? 'png' : 'jpg'}`;
-  const { error } = await supabase.storage.from('fotos').upload(path, buf, { contentType: type, upsert: true });
-  if (error) throw error;
+  const { buf, type } = await readPhoto(localUri);
+  if (buf.byteLength === 0) throw new Error('não foi possível ler a foto');
+  const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg';
+  // Nome sempre novo: não precisa sobrescrever (upsert), que exigiria mais permissões.
+  const path = `${userId}/${name}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('fotos').upload(path, buf, { contentType: type, upsert: false });
+  if (error) throw new Error(error.message);
   return supabase.storage.from('fotos').getPublicUrl(path).data.publicUrl;
 }
