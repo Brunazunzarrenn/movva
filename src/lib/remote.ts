@@ -119,6 +119,11 @@ export async function insertPost(userId: string, p: UserPost) {
   return urls;
 }
 
+export async function deletePostRemote(id: string) {
+  const { error } = await db().from('posts').delete().eq('id', id);
+  if (error) throw error;
+}
+
 export async function suggestSportRemote(name: string) {
   const { error } = await db().rpc('suggest_sport', { sport_name: name });
   if (error) throw error;

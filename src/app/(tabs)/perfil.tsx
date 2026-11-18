@@ -104,7 +104,7 @@ export default function Perfil() {
               title="Sua galeria está vazia"
               text="Complete desafios, duelos e treinos para ganhar medalhas. Elas ficam aqui para sempre."
               action="Ver desafios"
-              onAction={() => router.push('/(tabs)/arena')}
+              onAction={() => router.push('/desafios')}
             />
           ) : (
             <View style={{ gap: 12 }}>

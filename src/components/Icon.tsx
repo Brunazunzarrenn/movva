@@ -3,7 +3,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 export type IconName =
   | 'home' | 'users' | 'plus' | 'trophy' | 'user' | 'search' | 'bell' | 'calendar' | 'coach'
   | 'back' | 'close' | 'check' | 'heart' | 'comment' | 'pin' | 'clock' | 'shield' | 'sun'
-  | 'chevron' | 'settings' | 'camera' | 'trend' | 'bolt' | 'send' | 'flag';
+  | 'chevron' | 'settings' | 'camera' | 'trend' | 'bolt' | 'send' | 'flag' | 'trash';
 
 type Props = { name: IconName; size?: number; color: string; strokeWidth?: number; filled?: boolean };
 
@@ -105,6 +105,7 @@ export function Icon({ name, size = 24, color, strokeWidth = 2, filled = false }
         <Circle {...p} cx={12} cy={13} r={3.5} />
       </>
     ),
+    trash: <Path {...p} d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
     bolt: <Path {...p} d="M13 2L4 14h7l-1 8 9-12h-7z" />,
     send: <Path {...p} d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />,
     flag: <Path {...p} d="M5 21V4M5 4h11l-2 4 2 4H5" />,

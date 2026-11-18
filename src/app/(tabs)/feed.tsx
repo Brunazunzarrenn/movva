@@ -9,6 +9,7 @@ import { Card, Chip, IconButton, Screen, s } from '@/components/ui';
 import { EmptyState } from '@/components/profileParts';
 import { athleteById, communityPosts, inviteStatus } from '@/data/community';
 import { useCommunity } from '@/data/CommunityStore';
+import { useNotifications } from '@/data/notifications';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -26,6 +27,7 @@ export default function Feed() {
   const openInvites = invites.filter((i) => i.hostId !== 'me' && !joined[i.id] && inviteStatus(i.start) !== 'encerrado');
   const forMe = invites.filter((i) => i.invited.includes('me') && !joined[i.id] && !declined[i.id]).length;
   const soon = () => router.push('/em-breve');
+  const { unread } = useNotifications();
 
   return (
     <Screen inTabs>
@@ -33,9 +35,9 @@ export default function Feed() {
         <Txt style={{ fontFamily: fonts.display, fontSize: 28, letterSpacing: 3, color: colors.text }} accessibilityRole="header">MOVVA</Txt>
         <View style={s.row}>
           <IconButton icon="coach" label="MOVVA Coach" color={colors.accentInk} onPress={soon} />
-          <IconButton icon="calendar" label="Calendário" onPress={soon} />
-          <IconButton icon="search" label="Buscar atletas, clubes e treinadores" onPress={soon} />
-          <IconButton icon="bell" label="Notificações" badge onPress={soon} />
+          <IconButton icon="calendar" label="Calendário" onPress={() => router.push('/calendario')} />
+          <IconButton icon="search" label="Buscar atletas, desafios e treinos" onPress={() => router.push('/buscar')} />
+          <IconButton icon="bell" label={unread ? `Notificações, ${unread} novas` : 'Notificações'} badge={unread > 0} onPress={() => router.push('/notificacoes')} />
         </View>
       </View>
 

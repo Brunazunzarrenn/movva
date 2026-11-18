@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 
 import type { ActivityKind } from '@/data/activity';
 import {
-  deleteWorkoutRemote, fetchMyPosts, fetchMyProfile, fetchMyWorkouts, insertPost, insertWorkout, saveProfile,
+  deletePostRemote, deleteWorkoutRemote, fetchMyPosts, fetchMyProfile, fetchMyWorkouts, insertPost, insertWorkout, saveProfile,
 } from '@/lib/remote';
 import { isOnline, supabase, uuid } from '@/lib/supabase';
 import { avatarColors } from '@/theme/colors';
@@ -78,6 +78,7 @@ type Store = {
   completeSignup: (last: SignupDraft) => Promise<{ profile?: Profile; error?: string }>;
   updateProfile: (patch: Partial<Profile>) => void;
   addPost: (p: Omit<UserPost, 'id' | 'createdAt'>) => void;
+  deletePost: (id: string) => void;
   workouts: UserWorkout[];
   addWorkout: (w: Omit<UserWorkout, 'id'>) => UserWorkout;
   deleteWorkout: (id: string) => void;
@@ -231,6 +232,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             .then((urls) => setPosts((cur) => cur.map((x) => (x.id === created.id ? { ...x, photoUris: urls } : x))))
             .catch(fail);
         }
+      },
+      // Apaga só o post: o treino ligado a ele continua no perfil.
+      deletePost: (id) => {
+        setPosts((cur) => cur.filter((p) => p.id !== id));
+        if (isOnline && userId) deletePostRemote(id).catch(fail);
       },
       workouts,
       addWorkout: (w) => {

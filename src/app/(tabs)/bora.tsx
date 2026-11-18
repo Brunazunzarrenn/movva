@@ -59,7 +59,7 @@ export default function Bora() {
           ) : null}
 
           <View style={{ gap: 10 }}>
-            <SectionTitle>Minha agenda</SectionTitle>
+            <SectionTitle right={<Txt variant="small" tone="accent" onPress={() => router.push('/calendario')} accessibilityRole="link">Calendário ›</Txt>}>Minha agenda</SectionTitle>
             {agenda.length ? (
               agenda.map((i) => <InviteCard key={i.id} inv={i} />)
             ) : (

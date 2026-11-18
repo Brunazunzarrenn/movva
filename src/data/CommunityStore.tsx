@@ -27,12 +27,13 @@ type Saved = {
   messages: Record<string, ChatMessage[]>;
   joinedChallenges: Record<string, boolean>;
   myChallenges: Challenge[];
+  notifSeenAt: string | null; // última vez que abriu as notificações
 };
 
 const EMPTY: Saved = {
   likes: {}, comments: {}, following: { mariana: true, bruno: true, lucas: true, girobh: true },
   duels: [], myInvites: [], joined: {}, declined: {}, extraParticipants: {}, checkins: {}, messages: {},
-  joinedChallenges: {}, myChallenges: [],
+  joinedChallenges: {}, myChallenges: [], notifSeenAt: null,
 };
 
 const KEY = 'movva.comunidade.v1';
@@ -57,6 +58,7 @@ type Store = Saved & {
   setChallengeJoined: (id: string, v: boolean) => void;
   createChallenge: (c: Omit<Challenge, 'id' | 'creatorId' | 'progress' | 'crowd'>) => Challenge;
   deleteChallenge: (id: string) => void;
+  markNotifSeen: () => void;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -132,6 +134,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         });
         return created;
       },
+      markNotifSeen: () => setData((s) => ({ ...s, notifSeenAt: new Date().toISOString() })),
       deleteChallenge: (id) => setData((s) => ({ ...s, myChallenges: s.myChallenges.filter((x) => x.id !== id) })),
       chat: (id) => [...(seed.chats[id] ?? []), ...(data.messages[id] ?? [])],
       toggleLike: (postId) => setData((s) => ({ ...s, likes: { ...s.likes, [postId]: !s.likes[postId] } })),

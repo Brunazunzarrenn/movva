@@ -21,7 +21,8 @@ export default function PostDetalhe() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { profile, posts, workouts: myWorkouts } = useProfile();
+  const { profile, posts, workouts: myWorkouts, deletePost } = useProfile();
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { likes, comments: stored, toggleLike, addComment } = useCommunity();
 
   type PostView = {
@@ -134,7 +135,29 @@ export default function PostDetalhe() {
           </View>
         </Pressable>
         {post.author.verified ? <VerifiedBadge /> : null}
+        {own ? <IconButton icon="trash" label="Apagar post" onPress={() => setConfirmDelete(true)} /> : null}
       </View>
+
+      {confirmDelete ? (
+        <View style={{ marginHorizontal: 16, marginBottom: 10, padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.danger, gap: 10 }}>
+          <Txt variant="bodyStrong">Apagar este post?</Txt>
+          <Txt variant="caption" tone="muted">
+            Some do seu perfil e do feed, junto com curtidas e comentários. Não dá para desfazer.{ownWorkout ? ' O treino continua salvo no seu perfil.' : ''}
+          </Txt>
+          <View style={[s.row, { gap: 8 }]}>
+            <Pressable accessibilityRole="button" onPress={() => setConfirmDelete(false)} style={{ flex: 1, minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
+              <Txt>Cancelar</Txt>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => { deletePost(id); router.back(); }}
+              style={{ flex: 1, minHeight: 44, borderRadius: 12, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Txt style={{ fontFamily: fonts.bodySemi, color: '#FFFFFF' }}>Apagar post</Txt>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
 
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         {/* Fotos: desliza para o lado quando há mais de uma */}
