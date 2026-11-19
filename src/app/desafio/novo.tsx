@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
+import { useToast } from '@/components/Toast';
 import { ChallengeMedal } from '@/components/arena';
 import { PeoplePicker } from '@/components/PeoplePicker';
 import { TextField } from '@/components/TextField';
@@ -23,6 +24,7 @@ const VIS = ['Público', 'Privado'] as const;
 export default function NovoDesafio() {
   const { colors } = useTheme();
   const { createChallenge } = useCommunity();
+  const toast = useToast();
   const [title, setTitle] = useState('');
   const { profile } = useProfile();
   const { categories } = useSports();
@@ -77,6 +79,7 @@ export default function NovoDesafio() {
       medal: { mark: medalMark, rarity: 'rara', palette },
       invited,
     });
+    toast('Desafio criado. Você já está participando.');
     router.replace({ pathname: '/desafio/[id]', params: { id: c.id } });
   };
 

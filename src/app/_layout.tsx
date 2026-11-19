@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 
+import { ToastProvider } from '@/components/Toast';
 import { CommunityProvider } from '@/data/CommunityStore';
 import { ProfileProvider } from '@/data/ProfileStore';
 import { SportsProvider } from '@/data/SportsStore';
@@ -35,7 +36,9 @@ export default function RootLayout() {
       <SportsProvider>
         <ProfileProvider>
           <CommunityProvider>
-            <RootStack />
+            <ToastProvider>
+              <RootStack />
+            </ToastProvider>
           </CommunityProvider>
         </ProfileProvider>
       </SportsProvider>

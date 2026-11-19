@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useToast } from '@/components/Toast';
 import { Icon } from '@/components/Icon';
 import { PhotoViewer } from '@/components/PhotoViewer';
 import { PostPhoto } from '@/components/profileParts';
@@ -24,6 +25,7 @@ export default function PostDetalhe() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { profile, posts, workouts: myWorkouts, deletePost } = useProfile();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const toast = useToast();
   const { likes, comments: stored, toggleLike, addComment } = useCommunity();
 
   type PostView = {
@@ -152,7 +154,7 @@ export default function PostDetalhe() {
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              onPress={() => { deletePost(id); router.back(); }}
+              onPress={() => { deletePost(id); toast('Post apagado.'); router.back(); }}
               style={{ flex: 1, minHeight: 44, borderRadius: 12, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' }}
             >
               <Txt style={{ fontFamily: fonts.bodySemi, color: '#FFFFFF' }}>Apagar post</Txt>

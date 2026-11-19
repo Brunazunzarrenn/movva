@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
+import { useToast } from '@/components/Toast';
 import { Icon } from '@/components/Icon';
 import { usePerson } from '@/components/social';
 import { TextField } from '@/components/TextField';
@@ -28,6 +29,7 @@ export default function Desafiar() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { createDuel } = useCommunity();
   const person = usePerson();
+  const toast = useToast();
   const a = athleteById(id);
   const [metric, setMetric] = useState<DuelMetric>(defaultMetric(a?.sports ?? []));
   const [days, setDays] = useState<(typeof DAYS)[number]>(7);
@@ -40,6 +42,7 @@ export default function Desafiar() {
 
   const send = () => {
     createDuel({ athleteId: a.id, metric, days, note: note.trim() || undefined });
+    toast(`Desafio enviado para ${first}. Quando aceitar, a contagem começa.`);
     router.back();
   };
 

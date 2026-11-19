@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
+import { useToast } from '@/components/Toast';
 import { useProfileSports } from '@/components/profileParts';
 import { PeoplePicker } from '@/components/PeoplePicker';
 import { TextField } from '@/components/TextField';
@@ -26,6 +27,7 @@ export default function NovoConvite() {
   const { com } = useLocalSearchParams<{ com?: string }>();
   const { profile } = useProfile();
   const { createInvite } = useCommunity();
+  const toast = useToast();
   const guest = com ? athleteById(com) : undefined;
   const mySports = useProfileSports(profile?.sports ?? [], profile?.pendingSports ?? []).official;
 
@@ -87,6 +89,7 @@ export default function NovoConvite() {
       visibility: vis,
       note: note.trim() || undefined,
     });
+    toast(invited.length ? `Convite publicado e enviado para ${invited.length} ${invited.length === 1 ? 'pessoa' : 'pessoas'}.` : 'Convite publicado.');
     router.replace({ pathname: '/convite/[id]', params: { id: inv.id } });
   };
 

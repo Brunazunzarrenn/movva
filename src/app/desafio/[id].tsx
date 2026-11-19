@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
+import { useToast } from '@/components/Toast';
 import { Bar, ChallengeMedal, RankRow, challengeState } from '@/components/arena';
 import { Txt } from '@/components/Txt';
 import { Button, Header, Screen, SectionTitle, s } from '@/components/ui';
@@ -19,6 +20,7 @@ export default function DesafioDetalhe() {
   const { challenges, joinedChallenges, setChallengeJoined, deleteChallenge } = useCommunity();
   const c = challenges.find((x) => x.id === id);
   const { workouts } = useProfile();
+  const toast = useToast();
   const st = c ? challengeState(c, joinedChallenges, workouts) : null;
 
   if (!c || !st) {
@@ -36,11 +38,11 @@ export default function DesafioDetalhe() {
     .sort((a, b) => b.value - a.value);
 
   const footer = mineCreator ? (
-    <Button label="Excluir desafio" variant="danger" onPress={() => { deleteChallenge(c.id); router.back(); }} />
+    <Button label="Excluir desafio" variant="danger" onPress={() => { deleteChallenge(c.id); toast('Desafio excluído.'); router.back(); }} />
   ) : st.joined ? (
-    <Button label="Sair do desafio" variant="secondary" onPress={() => setChallengeJoined(c.id, false)} />
+    <Button label="Sair do desafio" variant="secondary" onPress={() => { setChallengeJoined(c.id, false); toast('Você saiu do desafio.'); }} />
   ) : (
-    <Button label={st.invited ? 'Aceitar e participar' : 'Participar do desafio'} onPress={() => setChallengeJoined(c.id, true)} />
+    <Button label={st.invited ? 'Aceitar e participar' : 'Participar do desafio'} onPress={() => { setChallengeJoined(c.id, true); toast('Você entrou! Seus treinos gravados já contam.'); }} />
   );
 
   return (

@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useToast } from '@/components/Toast';
 import { Icon } from '@/components/Icon';
 import { PostCard } from '@/components/PostCard';
 import { SportTags } from '@/components/profileParts';
@@ -23,6 +24,7 @@ export default function AtletaPerfil() {
   const { profile } = useProfile();
   const { following, toggleFollow, duels, invites } = useCommunity();
   const a = athleteById(id);
+  const toast = useToast();
 
   if (!a) {
     return (
@@ -56,7 +58,7 @@ export default function AtletaPerfil() {
             icon={isFollowing ? 'check' : 'plus'}
             variant={isFollowing ? 'secondary' : 'primary'}
             size="sm"
-            onPress={() => toggleFollow(a.id)}
+            onPress={() => { toggleFollow(a.id); toast(isFollowing ? `Você deixou de seguir ${a.name}.` : `Agora você segue ${a.name}.`); }}
             style={{ minWidth: 112 }}
           />
         </View>

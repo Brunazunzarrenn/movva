@@ -23,13 +23,32 @@ const CACHE_KEY = 'movva.clima.v1';
 const CACHE_MS = 30 * 60 * 1000;
 const BH = { lat: -19.9191, lon: -43.9386, name: 'Belo Horizonte' };
 
+// Nunca deixa a tela presa esperando: GPS e internet têm prazo.
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error('tempo esgotado')), ms))]);
+}
+
+async function getJson<T>(url: string): Promise<T> {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return (await r.json()) as T;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 async function findPlace(region?: string) {
   // 1) localização do celular (só se a pessoa já deixou ou deixar agora)
   try {
     const perm = await Location.getForegroundPermissionsAsync();
     const ok = perm.granted || (perm.canAskAgain && (await Location.requestForegroundPermissionsAsync()).granted);
     if (ok) {
-      const pos = await Location.getLastKnownPositionAsync() ?? await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const pos =
+        (await withTimeout(Location.getLastKnownPositionAsync({ maxAge: 6 * 3600000 }), 3000).catch(() => null)) ??
+        (await withTimeout(Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }), 6000).catch(() => null));
       if (pos) return { lat: pos.coords.latitude, lon: pos.coords.longitude, name: region?.split(',').pop()?.trim() || 'Sua localização' };
     }
   } catch { /* sem GPS: tenta pela região do perfil */ }
@@ -37,8 +56,9 @@ async function findPlace(region?: string) {
   const parts = (region ?? '').split(',').map((x) => x.trim()).filter(Boolean).reverse();
   for (const name of parts) {
     try {
-      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=pt&countryCode=BR`);
-      const j = (await r.json()) as { results?: { latitude: number; longitude: number; name: string }[] };
+      const j = await getJson<{ results?: { latitude: number; longitude: number; name: string }[] }>(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=pt&countryCode=BR`,
+      );
       const hit = j.results?.[0];
       if (hit) return { lat: hit.latitude, lon: hit.longitude, name: hit.name };
     } catch { /* tenta o próximo pedaço */ }
@@ -52,11 +72,9 @@ async function fetchForecast(region?: string): Promise<Forecast> {
     `https://api.open-meteo.com/v1/forecast?latitude=${place.lat.toFixed(3)}&longitude=${place.lon.toFixed(3)}` +
     '&hourly=temperature_2m,apparent_temperature,precipitation_probability,wind_speed_10m,uv_index,relative_humidity_2m' +
     '&timezone=auto&forecast_days=2';
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`clima ${r.status}`);
-  const j = (await r.json()) as {
+  const j = await getJson<{
     hourly: { time: string[]; temperature_2m: number[]; apparent_temperature: number[]; precipitation_probability: (number | null)[]; wind_speed_10m: number[]; uv_index: number[]; relative_humidity_2m: number[] };
-  };
+  }>(url);
   const h = j.hourly;
   return {
     place: place.name,

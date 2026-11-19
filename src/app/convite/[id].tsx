@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
+import { useToast } from '@/components/Toast';
 import { Icon, type IconName } from '@/components/Icon';
 import { usePerson } from '@/components/social';
 import { Txt } from '@/components/Txt';
@@ -18,6 +19,7 @@ export default function ConviteDetalhe() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { invites, joined, declined, checkins, setJoined, decline, checkIn, cancelInvite, chat } = useCommunity();
   const person = usePerson();
+  const toast = useToast();
   const inv = invites.find((i) => i.id === id);
 
   if (!inv) {
@@ -53,25 +55,25 @@ export default function ConviteDetalhe() {
 
   const footer = isHost ? (
     <View style={[s.row, { gap: 8 }]}>
-      <Button label="Cancelar convite" variant="danger" size="md" onPress={() => { cancelInvite(inv.id); router.back(); }} style={{ flex: 1 }} />
+      <Button label="Cancelar convite" variant="danger" size="md" onPress={() => { cancelInvite(inv.id); toast('Convite cancelado.'); router.back(); }} style={{ flex: 1 }} />
       <Button label="Abrir chat" size="md" onPress={() => router.push({ pathname: '/convite/chat/[id]', params: { id: inv.id } })} style={{ flex: 1 }} />
     </View>
   ) : going ? (
     <View style={[s.row, { gap: 8 }]}>
-      <Button label="Sair do treino" variant="secondary" size="md" onPress={() => setJoined(inv.id, false)} style={{ flex: 1 }} />
+      <Button label="Sair do treino" variant="secondary" size="md" onPress={() => { setJoined(inv.id, false); toast('Você saiu do treino.'); }} style={{ flex: 1 }} />
       <Button label="Abrir chat" size="md" onPress={() => router.push({ pathname: '/convite/chat/[id]', params: { id: inv.id } })} style={{ flex: 1 }} />
     </View>
   ) : invitedMe ? (
     <View style={[s.row, { gap: 8 }]}>
-      <Button label="Recusar" variant="secondary" size="md" onPress={() => decline(inv.id)} style={{ flex: 1 }} />
-      <Button label="Aceitar convite" size="md" disabled={full} onPress={() => setJoined(inv.id, true)} style={{ flex: 1 }} />
+      <Button label="Recusar" variant="secondary" size="md" onPress={() => { decline(inv.id); toast('Convite recusado.'); }} style={{ flex: 1 }} />
+      <Button label="Aceitar convite" size="md" disabled={full} onPress={() => { setJoined(inv.id, true); toast('Presença confirmada! O chat do treino foi liberado.'); }} style={{ flex: 1 }} />
     </View>
   ) : (
     <Button
       label={st === 'encerrado' ? 'Treino encerrado' : full ? 'Lotado' : 'Quero ir'}
       icon="check"
       disabled={full || st === 'encerrado'}
-      onPress={() => setJoined(inv.id, true)}
+      onPress={() => { setJoined(inv.id, true); toast('Presença confirmada! O chat do treino foi liberado.'); }}
     />
   );
 

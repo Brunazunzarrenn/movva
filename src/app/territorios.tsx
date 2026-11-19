@@ -3,13 +3,19 @@ import { Pressable, View } from 'react-native';
 
 import { RankRow } from '@/components/arena';
 import { Txt } from '@/components/Txt';
-import { Chip, Header, Screen, SectionTitle, s } from '@/components/ui';
+import { Header, Screen, SectionTitle, s } from '@/components/ui';
 import { territories, territoryMap } from '@/data/arena';
 import { athleteById } from '@/data/community';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const MONTH = new Date().toLocaleDateString('pt-BR', { month: 'long' });
+
+// A primeira célula de cada área mostra a letra dela (P = Pampulha, S = Savassi…).
+const LABEL_AT = new Set(territories.map((t) => {
+  const r = territoryMap.findIndex((row) => row.includes(t.id));
+  return `${r}-${territoryMap[r].indexOf(t.id)}`;
+}));
 
 export default function Territorios() {
   const { colors, isDark } = useTheme();
@@ -48,6 +54,9 @@ export default function Territorios() {
                     backgroundColor: ownerColor(id), opacity: on ? 1 : 0.42, borderWidth: on ? 2 : 0, borderColor: colors.text,
                   }}
                 >
+                  {LABEL_AT.has(`${r}-${c}`) ? (
+                    <Txt style={{ fontFamily: fonts.bodyBold, fontSize: 13, color: '#FFFFFF' }}>{id}</Txt>
+                  ) : null}
                 </Pressable>
               );
             })}
@@ -55,8 +64,28 @@ export default function Territorios() {
         ))}
       </View>
 
-      <View style={s.wrap}>
-        {territories.map((t) => <Chip key={t.id} label={t.name} selected={t.id === sel} onPress={() => setSel(t.id)} />)}
+      {/* Legenda: letra do mapa, nome da área e quem domina */}
+      <View style={{ borderRadius: 16, backgroundColor: colors.surface, overflow: 'hidden' }}>
+        {territories.map((t, i) => {
+          const o = athleteById(t.board[0]?.athleteId ?? '');
+          const on = t.id === sel;
+          return (
+            <Pressable
+              key={t.id}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+              accessibilityLabel={`${t.name}: ${o ? `domínio de ${o.name}` : 'área livre'}`}
+              onPress={() => setSel(t.id)}
+              style={[s.row, { gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: colors.divider, backgroundColor: on ? colors.accentSoft : 'transparent' }]}
+            >
+              <View style={{ width: 26, height: 26, borderRadius: 6, backgroundColor: ownerColor(t.id), alignItems: 'center', justifyContent: 'center' }}>
+                <Txt style={{ fontFamily: fonts.bodyBold, fontSize: 12, color: '#FFFFFF' }}>{t.id}</Txt>
+              </View>
+              <Txt variant="small" style={{ flex: 1, fontSize: 15, fontFamily: on ? fonts.bodySemi : fonts.body }}>{t.name}</Txt>
+              <Txt variant="caption" tone={o ? 'soft' : 'muted'}>{o ? o.name.split(' ')[0] : 'livre'}</Txt>
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={{ gap: 8, padding: 14, borderRadius: 18, backgroundColor: colors.surface }}>
