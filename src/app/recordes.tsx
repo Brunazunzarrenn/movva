@@ -8,6 +8,7 @@ import { Txt } from '@/components/Txt';
 import { Button, Chip, Header, Screen, s } from '@/components/ui';
 import { useProfile } from '@/data/ProfileStore';
 import { records } from '@/data/profile';
+import { shareText } from '@/utils/share';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -44,7 +45,7 @@ export default function Recordes() {
           <Txt variant="eyebrow" tone="gold">Novo recorde · 02/11</Txt>
           <Txt style={{ fontFamily: fonts.display, fontSize: 32, color: colors.text }}>5 km em {latest.value}</Txt>
           <Txt variant="small" tone="soft">41 segundos mais rápido que seu recorde anterior (25:19).</Txt>
-          <Button label="Compartilhar recorde" size="sm" variant="inverse" onPress={() => router.push('/em-breve')} style={{ alignSelf: 'flex-start', marginTop: 4 }} />
+          <Button label="Compartilhar recorde" size="sm" variant="inverse" onPress={() => shareText(`Novo recorde no MOVVA: 5 km em ${latest.value}!`)} style={{ alignSelf: 'flex-start', marginTop: 4 }} />
         </View>
       ) : null}
 

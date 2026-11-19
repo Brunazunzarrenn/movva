@@ -3,18 +3,17 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { ChallengeMedal } from '@/components/arena';
-import { Icon } from '@/components/Icon';
+import { PeoplePicker } from '@/components/PeoplePicker';
 import { TextField } from '@/components/TextField';
 import { Txt } from '@/components/Txt';
-import { Avatar, Button, Chip, Header, Screen, Segmented, s } from '@/components/ui';
+import { Button, Chip, Header, Screen, Segmented, s } from '@/components/ui';
 import { ANY_SPORT, defaultTarget, fmtGoal, goalsFor, goalTypes, medalPalettes, sportGroups, type GoalType } from '@/data/arena';
 import { trainingOptions } from '@/data/activity';
 import { normalizeSport } from '@/data/sports';
 import { useSports } from '@/data/SportsStore';
 import { useProfileSports } from '@/components/profileParts';
-import { athletes } from '@/data/community';
 import { useCommunity } from '@/data/CommunityStore';
-import { initialsOf, useProfile } from '@/data/ProfileStore';
+import { useProfile } from '@/data/ProfileStore';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -136,28 +135,7 @@ export default function NovoDesafio() {
         <Txt variant="caption" tone="muted">{vis === 'Público' ? 'Aparece na Arena para todo mundo entrar.' : 'Só quem você convidar vê e participa.'}</Txt>
       </View>
 
-      <View style={{ gap: 8 }}>
-        <Txt variant="bodyStrong">Convidar</Txt>
-        <View style={s.wrap}>
-          {athletes.filter((a) => !a.club).map((a) => {
-            const on = invited.includes(a.id);
-            return (
-              <Pressable
-                key={a.id}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: on }}
-                accessibilityLabel={`Convidar ${a.name}`}
-                onPress={() => setInvited((cur) => (on ? cur.filter((x) => x !== a.id) : [...cur, a.id]))}
-                style={[s.row, { gap: 8, paddingLeft: 4, paddingRight: 12, minHeight: 40, borderRadius: 999, borderWidth: 1, borderColor: on ? colors.accentInk : colors.border, backgroundColor: on ? colors.accentSoft : colors.surface }]}
-              >
-                <Avatar initials={initialsOf(a.name)} color={a.color} size={30} />
-                <Txt variant="small" style={{ fontSize: 14, color: on ? colors.accentInk : colors.text }}>{a.name.split(' ')[0]}</Txt>
-                {on ? <Icon name="check" size={14} strokeWidth={3} color={colors.accentInk} /> : null}
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
+      <PeoplePicker selected={invited} onChange={setInvited} />
 
       <View style={{ gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.surface }}>
         <View style={[s.row, { gap: 8 }]}>

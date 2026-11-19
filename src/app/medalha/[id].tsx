@@ -1,5 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+
+import { shareText } from '@/utils/share';
 import { View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
@@ -27,10 +29,10 @@ export default function MedalhaDetalhe() {
     <Screen
       footer={
         <>
-          <Button label="Quero a medalha física" variant="secondary" size="md" onPress={() => router.push('/em-breve')} />
+          <Button label="Medalha física · em breve" variant="secondary" size="md" disabled />
           <View style={[s.row, { gap: 10 }]}>
             <Button label={pinned ? 'Fixada no perfil' : 'Fixar no perfil'} variant="outline" onPress={() => setPinned((v) => !v)} style={{ flex: 1 }} />
-            <Button label="Compartilhar" onPress={() => router.push('/em-breve')} style={{ flex: 1 }} />
+            <Button label="Compartilhar" onPress={() => shareText(`Conquistei a medalha "${medal.name}" (${rarityLabel[medal.rarity]}) no MOVVA!`)} style={{ flex: 1 }} />
           </View>
         </>
       }

@@ -2,16 +2,16 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { Icon } from '@/components/Icon';
 import { useProfileSports } from '@/components/profileParts';
+import { PeoplePicker } from '@/components/PeoplePicker';
 import { TextField } from '@/components/TextField';
 import { Txt } from '@/components/Txt';
-import { Avatar, Button, Chip, Header, Screen, Segmented, s } from '@/components/ui';
+import { Button, Chip, Header, Screen, Segmented, s } from '@/components/ui';
 import { fieldsFor, trainingOptions } from '@/data/activity';
-import { athleteById, athletes, compatibility, type InviteVisibility } from '@/data/community';
+import { athleteById, compatibility, type InviteVisibility } from '@/data/community';
 import { useCommunity } from '@/data/CommunityStore';
 import { levels } from '@/data/mock';
-import { initialsOf, useProfile, type Level } from '@/data/ProfileStore';
+import { useProfile, type Level } from '@/data/ProfileStore';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
 import { maskTime, timeError } from '@/utils/format';
@@ -59,11 +59,6 @@ export default function NovoConvite() {
   const [tried, setTried] = useState(false);
   const f = fieldsFor(sport);
 
-  const partners = athletes
-    .filter((a) => !a.club)
-    .map((a) => ({ a, score: compatibility(profile, a).score }))
-    .sort((x, y) => (x.a.id === com ? -1 : y.a.id === com ? 1 : y.score - x.score))
-    .slice(0, 5);
 
   const start = useMemo(() => {
     if (timeError(time)) return null;
@@ -168,28 +163,7 @@ export default function NovoConvite() {
         </View>
       </View>
 
-      <View style={{ gap: 8 }}>
-        <Txt variant="bodyStrong">Convidar</Txt>
-        <View style={s.wrap}>
-          {partners.map(({ a }) => {
-            const on = invited.includes(a.id);
-            return (
-              <Pressable
-                key={a.id}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: on }}
-                accessibilityLabel={`Convidar ${a.name}`}
-                onPress={() => setInvited((cur) => (on ? cur.filter((x) => x !== a.id) : [...cur, a.id]))}
-                style={[s.row, { gap: 8, paddingLeft: 4, paddingRight: 12, minHeight: 40, borderRadius: 999, borderWidth: 1, borderColor: on ? colors.accentInk : colors.border, backgroundColor: on ? colors.accentSoft : colors.surface }]}
-              >
-                <Avatar initials={initialsOf(a.name)} color={a.color} size={30} />
-                <Txt variant="small" style={{ fontSize: 14, color: on ? colors.accentInk : colors.text }}>{a.name.split(' ')[0]}</Txt>
-                {on ? <Icon name="check" size={14} strokeWidth={3} color={colors.accentInk} /> : null}
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
+      <PeoplePicker selected={invited} onChange={setInvited} />
 
       <View style={{ gap: 8 }}>
         <Txt variant="bodyStrong">Quem pode ver</Txt>

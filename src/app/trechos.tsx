@@ -1,9 +1,12 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
+
+import { matches, SearchBar } from '@/components/SearchBar';
 
 import { Icon } from '@/components/Icon';
 import { Txt } from '@/components/Txt';
-import { Avatar, Header, RouteMap, Screen, SectionTitle, s } from '@/components/ui';
+import { Avatar, Chip, Header, RouteMap, Screen, SectionTitle, s } from '@/components/ui';
 import { segments } from '@/data/arena';
 import { athleteById } from '@/data/community';
 import { initialsOf } from '@/data/ProfileStore';
@@ -19,16 +22,28 @@ export default function Trechos() {
   );
 }
 
+const SPORTS = ['Todos', 'Corrida', 'Pedal', 'Trilha'] as const;
+
 function Competicoes() {
   const { colors } = useTheme();
+  const [q, setQ] = useState('');
+  const [sport, setSport] = useState<(typeof SPORTS)[number]>('Todos');
+  const list = segments.filter((sg) => (sport === 'Todos' || sg.sport === sport) && matches(q, sg.name, sg.place, sg.sport));
   return (
     <View style={{ gap: 10 }}>
       <View style={{ padding: 14, borderRadius: 16, backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accentSoftBorder, gap: 4 }}>
         <Txt variant="bodyStrong">Competição sem inscrição</Txt>
         <Txt variant="caption" tone="soft">Passou por um trecho com o treino gravado? Seu tempo entra sozinho no ranking. O mais rápido do mês vira o dono do trecho e leva a medalha.</Txt>
       </View>
-      <SectionTitle>Trechos perto de você</SectionTitle>
-      {segments.map((sg) => {
+      <SearchBar value={q} onChangeText={setQ} label="Buscar trecho" placeholder="Nome do trecho, rua ou parque" />
+      <View style={[s.row, { gap: 8 }]}>
+        {SPORTS.map((x) => <Chip key={x} label={x} selected={x === sport} onPress={() => setSport(x)} />)}
+      </View>
+      <SectionTitle right={<Txt variant="small" tone="muted">{list.length}</Txt>}>{q || sport !== 'Todos' ? 'Resultados' : 'Trechos perto de você'}</SectionTitle>
+      {list.length === 0 ? (
+        <Txt variant="small" tone="muted">Nenhum trecho encontrado. Tente outro nome ou bairro.</Txt>
+      ) : null}
+      {list.map((sg) => {
         const lead = athleteById(sg.efforts[0]?.athleteId ?? '');
         return (
           <Pressable

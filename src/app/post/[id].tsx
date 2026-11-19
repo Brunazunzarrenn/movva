@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
+import { PhotoViewer } from '@/components/PhotoViewer';
 import { PostPhoto } from '@/components/profileParts';
 import { Txt } from '@/components/Txt';
 import { Avatar, IconButton, RouteMap, VerifiedBadge, s } from '@/components/ui';
@@ -90,6 +91,7 @@ export default function PostDetalhe() {
   const workout = workouts.find((w) => w.id === post?.workoutId);
 
   const [photo, setPhoto] = useState(0);
+  const [viewer, setViewer] = useState<number | null>(null);
   const [draft, setDraft] = useState('');
   const liked = !!likes[id];
 
@@ -168,7 +170,9 @@ export default function PostDetalhe() {
           onMomentumScrollEnd={(e) => setPhoto(Math.round(e.nativeEvent.contentOffset.x / width))}
         >
           {post.photos.map((ph, i) => (
-            <PostPhoto key={i} uri={ph.uri} art={ph.art} style={{ width, height: width * 0.75 }} />
+            <Pressable key={i} accessibilityRole="imagebutton" accessibilityLabel={`Abrir foto ${i + 1} em tela cheia`} onPress={() => setViewer(i)}>
+              <PostPhoto uri={ph.uri} art={ph.art} style={{ width, height: width * 0.75 }} />
+            </Pressable>
           ))}
         </ScrollView>
         {post.route ? <RouteMap path={post.route} height={200} /> : null}
@@ -257,6 +261,7 @@ export default function PostDetalhe() {
           <Icon name="chevron" size={22} strokeWidth={2.5} color={colors.onAccent} />
         </Pressable>
       </View>
+      <PhotoViewer photos={post.photos} start={viewer ?? 0} visible={viewer !== null} onClose={() => setViewer(null)} />
     </KeyboardAvoidingView>
   );
 }
