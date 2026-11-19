@@ -8,7 +8,8 @@ import { myPosts, workouts } from '@/data/profile';
 import { useState } from 'react';
 import { Icon } from '@/components/Icon';
 import { BigStats, whenText, workoutStats } from '@/components/workout';
-import { activitySpec, fmtDuration, fmtKm, fmtSpeed, pathFromCoords, shortSport } from '@/data/activity';
+import { RouteView } from '@/components/map/RouteView';
+import { activitySpec, fmtDuration, fmtKm, fmtSpeed, shortSport } from '@/data/activity';
 import { isVerified, useProfile, type UserWorkout } from '@/data/ProfileStore';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -71,7 +72,6 @@ function MinhaAtividade({ w }: { w: UserWorkout }) {
   const { posts, deleteWorkout } = useProfile();
   const [confirm, setConfirm] = useState(false);
   const post = posts.find((p) => p.workoutId === w.id);
-  const path = pathFromCoords(w.coords);
   const sourceText =
     w.source === 'gps' ? 'Gravado com GPS' : w.source === 'cronometro' ? 'Gravado com o cronômetro' : w.source === 'simulado' ? 'GPS simulado (teste)' : 'Lançado à mão';
 
@@ -88,9 +88,9 @@ function MinhaAtividade({ w }: { w: UserWorkout }) {
       ) : undefined
     }>
       <Header title={w.title} subtitle={`${w.sport} · ${whenText(w.start)}`} right={isVerified(w) ? <VerifiedBadge /> : undefined} />
-      {path ? (
+      {w.coords.length > 1 ? (
         <View style={{ borderRadius: 18, overflow: 'hidden', marginHorizontal: -4 }}>
-          <RouteMap height={190} path={path} />
+          <RouteView coords={w.coords} height={230} />
         </View>
       ) : null}
       <BigStats stats={workoutStats(w)} />

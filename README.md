@@ -76,3 +76,9 @@ Sem isso o app funciona no **modo de teste local** (conta só no aparelho). Para
    `update public.profiles set is_admin = true where username = 'seu_usuario';`
 
 Para lançar: configure um e-mail próprio (SMTP, ex.: Resend com o domínio do MOVVA) em Authentication → SMTP, e então ligue de novo o Confirm email e o "Esqueci minha senha".
+
+## Mapa e GPS
+
+- No celular o mapa é o de verdade (Apple Maps no iPhone, Google Maps no Android) via `react-native-maps`; no navegador o percurso aparece desenhado.
+- No Expo Go funciona sem configurar nada. Para publicar na loja (build próprio), o Android vai precisar de uma chave do Google Maps (`android.config.googleMaps.apiKey` no app.json).
+- A distância passa por um filtro (`src/utils/gpsFilter.ts`): suaviza os pontos com a precisão informada pelo celular, ignora saltos impossíveis e o "tremido" do GPS parado. A subida usa a altitude suavizada, contada de 3 em 3 m.

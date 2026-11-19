@@ -2,7 +2,6 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, Switch, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
@@ -10,15 +9,16 @@ import { useProfileSports } from '@/components/profileParts';
 import { TextField } from '@/components/TextField';
 import { Txt } from '@/components/Txt';
 import { BigStats, EffortPicker, workoutStats } from '@/components/workout';
-import { Button, Chip, Header, IconButton, RouteMap, Screen, Segmented, s } from '@/components/ui';
+import { Button, Chip, Header, IconButton, Screen, Segmented, s } from '@/components/ui';
 import {
-  activitySpec, dayPeriod, estimateKcal, fieldsFor, fmtDuration, fmtKm, fmtSpeed, pathFromCoords, shortSport, speedLabel, trainingOptions,
+  activitySpec, dayPeriod, estimateKcal, fieldsFor, fmtDuration, fmtKm, fmtSpeed, shortSport, speedLabel, trainingOptions,
 } from '@/data/activity';
 import { useProfile, type UserWorkout, type Visibility } from '@/data/ProfileStore';
 import { fonts } from '@/theme/fonts';
 import { useTheme } from '@/theme/ThemeProvider';
 import { maskTime, timeError } from '@/utils/format';
 import { segmentsFor, useRecorder } from '@/utils/useRecorder';
+import { RouteView } from '@/components/map/RouteView';
 
 type Phase = 'escolher' | 'gravando' | 'manual' | 'resumo';
 type Draft = Omit<UserWorkout, 'id' | 'title' | 'rpe' | 'kcal' | 'notes' | 'visibility'>;
@@ -139,7 +139,7 @@ function Choose(p: {
 /* ---------- 2. Gravando ---------- */
 
 function Recording({ sport, pool, simulate, onDone, onDiscard }: { sport: string; pool: number; simulate: boolean; onDone: (d: Draft) => void; onDiscard: () => void }) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   // Tela não apaga enquanto grava (no celular).
   useEffect(() => {
     if (Platform.OS === 'web') return;
@@ -159,7 +159,6 @@ function Recording({ sport, pool, simulate, onDone, onDiscard }: { sport: string
   const showDistance = r.spec.kind !== 'tempo' && !r.current.transition;
   const legKm = isMulti ? r.segKm : r.km;
   const legSec = isMulti ? r.segSec : r.moving;
-  const path = pathFromCoords(r.coords);
   const gpsPill = {
     'sem-gps': null,
     buscando: { label: 'Procurando GPS…', color: colors.gold },
@@ -248,16 +247,15 @@ function Recording({ sport, pool, simulate, onDone, onDiscard }: { sport: string
         ) : null}
 
         {r.usesGps ? (
-          <View style={{ borderRadius: 18, overflow: 'hidden' }}>
-            {path ? (
-              <Svg width="100%" height={170} viewBox="0 0 350 150" style={{ backgroundColor: colors.surfaceAlt }}>
-                <Path d={path} fill="none" stroke={isDark ? colors.accent : '#189A06'} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-              </Svg>
-            ) : (
-              <View style={{ height: 120, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceAlt }}>
-                <Txt variant="caption" tone="muted">{r.gps === 'negado' ? 'Libere a localização para gravar o percurso.' : 'O percurso aparece aqui quando o GPS fixar.'}</Txt>
+          <View style={{ borderRadius: 18, overflow: 'hidden', backgroundColor: colors.surfaceAlt }}>
+            <RouteView coords={r.coords} live height={240} />
+            {r.coords.length < 2 ? (
+              <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 10, backgroundColor: colors.overlay }}>
+                <Txt variant="caption" style={{ color: '#FFFFFF', textAlign: 'center' }}>
+                  {r.gps === 'negado' ? 'Libere a localização para gravar o percurso.' : r.gps === 'fraco' ? 'Sinal de GPS fraco: vá para um lugar aberto.' : 'O percurso aparece quando você começar a se mover.'}
+                </Txt>
               </View>
-            )}
+            ) : null}
           </View>
         ) : null}
 
@@ -388,7 +386,6 @@ function Summary({ draft, onDiscard }: { draft: Draft; onDiscard: () => void }) 
   const [confirm, setConfirm] = useState(false);
   const kcal = estimateKcal(draft.sport, draft.sec, rpe);
   const stats = workoutStats({ ...draft, kcal, rpe });
-  const path = pathFromCoords(draft.coords);
 
   const save = () => {
     const w = addWorkout({ ...draft, title: title.trim() || shortSport(draft.sport), rpe, kcal, notes: notes.trim() || undefined, visibility: vis });
@@ -415,9 +412,9 @@ function Summary({ draft, onDiscard }: { draft: Draft; onDiscard: () => void }) 
     }>
       <Header title="Treino concluído" subtitle={`${draft.sport}${draft.source === 'simulado' ? ' · GPS simulado' : draft.source === 'manual' ? ' · lançado à mão' : ''}`} />
 
-      {path ? (
+      {draft.coords.length > 1 ? (
         <View style={{ borderRadius: 18, overflow: 'hidden' }}>
-          <RouteMap path={path} height={160} />
+          <RouteView coords={draft.coords} height={200} />
         </View>
       ) : null}
 
